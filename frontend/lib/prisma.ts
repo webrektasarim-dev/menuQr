@@ -9,17 +9,46 @@ function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL
   
   if (!url) {
-    throw new Error('DATABASE_URL environment variable is not set')
+    throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
+  }
+
+  // If using old format (db.wczfwumhfhuwdrbhyujr.supabase.co), convert to pooling URL
+  if (url.includes('db.wczfwumhfhuwdrbhyujr.supabase.co')) {
+    console.warn('⚠️ Old database URL format detected. Using connection pooling URL instead.')
+    // Convert to connection pooling URL
+    const newUrl = url.replace(
+      'db.wczfwumhfhuwdrbhyujr.supabase.co:5432',
+      'aws-0-eu-central-1.pooler.supabase.com:5432'
+    ).replace(
+      'postgres://',
+      'postgresql://'
+    )
+    
+    // Add pgbouncer params if not present
+    if (!newUrl.includes('pgbouncer=true')) {
+      const separator = newUrl.includes('?') ? '&' : '?'
+      return `${newUrl}${separator}pgbouncer=true&connection_limit=1`
+    }
+    
+    return newUrl
   }
 
   // If using Supabase connection pooling, ensure pgbouncer params are correct
-  // Remove connection_limit if present (Prisma manages this internally)
-  if (url.includes('pooler.supabase.com') && url.includes('pgbouncer=true')) {
-    // Ensure connection_limit is set to 1 for Prisma compatibility
+  if (url.includes('pooler.supabase.com')) {
     const urlObj = new URL(url)
-    urlObj.searchParams.set('connection_limit', '1')
-    urlObj.searchParams.set('pgbouncer', 'true')
-    return urlObj.toString().replace('postgresql://', 'postgresql://').replace('postgres://', 'postgresql://')
+    
+    // Ensure pgbouncer=true
+    if (!urlObj.searchParams.has('pgbouncer')) {
+      urlObj.searchParams.set('pgbouncer', 'true')
+    }
+    
+    // Ensure connection_limit=1 for Prisma
+    if (!urlObj.searchParams.has('connection_limit')) {
+      urlObj.searchParams.set('connection_limit', '1')
+    }
+    
+    // Ensure postgresql:// protocol
+    return urlObj.toString().replace('postgres://', 'postgresql://')
   }
 
   return url
@@ -32,10 +61,6 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: getDatabaseUrl(),
     },
   },
-  // Connection pool settings for Vercel serverless
-  ...(process.env.DATABASE_URL?.includes('pooler.supabase.com') && {
-    // For Supabase connection pooling
-  }),
 })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
