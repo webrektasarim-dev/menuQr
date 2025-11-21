@@ -14,7 +14,7 @@ Aşağıdaki variables'ları **HEPSİNİ** ekleyin:
 
 **Variable Value:**
 ```
-postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
 ```
 
 **Önemli Notlar:**
@@ -22,6 +22,7 @@ postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler
 - Region: `eu-central-1` (Supabase Dashboard'dan kontrol edin)
 - Port: `6543` (Connection Pooling için)
 - `?pgbouncer=true` parametresi var (production için gerekli)
+- `&connection_limit=1` parametresi eklendi (Prisma için gerekli - "Tenant or user not found" hatasını önler)
 
 **Region'ı Kontrol Etmek İçin:**
 1. Supabase Dashboard → Settings → Database
@@ -96,7 +97,7 @@ postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler
 
 **Variable Value:**
 ```
-production
+01:50:49.633 
 ```
 
 **Not:** Vercel otomatik olarak set eder, ama belirtmek iyidir
