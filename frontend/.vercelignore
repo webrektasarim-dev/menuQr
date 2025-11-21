@@ -1,12 +1,3 @@
 node_modules
 .next
-.env.local
-.env.development.local
-.env.test.local
-*.log
-.git
-.gitignore
-README.md
-.vscode
-.idea
-
+.vercel
