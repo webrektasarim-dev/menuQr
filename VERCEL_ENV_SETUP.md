@@ -12,17 +12,23 @@ Aşağıdaki variables'ları **HEPSİNİ** ekleyin:
 
 **Variable Name:** `DATABASE_URL`
 
-**Variable Value:**
+**Variable Value (Direct Connection - Önerilen):**
 ```
-postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler.supabase.com:5432/postgres
 ```
 
 **Önemli Notlar:**
 - Password: `Ypfmqcz0.Qr`
 - Region: `eu-central-1` (Supabase Dashboard'dan kontrol edin)
-- Port: `6543` (Connection Pooling için)
-- `?pgbouncer=true` parametresi var (production için gerekli)
-- `&connection_limit=1` parametresi eklendi (Prisma için gerekli - "Tenant or user not found" hatasını önler)
+- Port: `5432` (Direct Connection - Prisma ile uyumlu)
+- **Connection pooling KULLANILMIYOR** (Prisma ile uyumsuzluk nedeniyle)
+
+**Alternatif (Connection Pooling - Deneyebilirsiniz):**
+```
+postgresql://postgres.wczfwumhfhuwdrbhyujr:Ypfmqcz0.Qr@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+```
+
+**Tavsiye:** Direct connection (port 5432) kullanın - daha güvenilir!
 
 **Region'ı Kontrol Etmek İçin:**
 1. Supabase Dashboard → Settings → Database
