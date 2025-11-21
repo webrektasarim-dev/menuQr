@@ -41,6 +41,7 @@ model User {
   menu          Menu?
   tables        Table[]
   orders        Order[]
+  campaigns     Campaign[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
