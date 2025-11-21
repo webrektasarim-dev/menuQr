@@ -1,0 +1,260 @@
+// Multi-tenant QR Menu System Database Schema
+// Optimized for 1000+ businesses
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+enum PlanType {
+  FREE
+  PREMIUM
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  WAITER
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  businessName  String
+  slug          String   @unique // URL slug: "kahve-dunyasi-beyoglu"
+  subdomain     String?  @unique // Optional subdomain: "kahvedunyasi"
+  
+  plan          PlanType @default(FREE)
+  isActive      Boolean  @default(true)
+  role          UserRole @default(ADMIN)
+  
+  // Relations
+  menu          Menu?
+  tables        Table[]
+  orders        Order[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([isActive, plan])
+  @@map("users")
+}
+
+// ============================================
+// MENU & CATEGORIES
+// ============================================
+
+model Menu {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  name        String   @default("Menü")
+  description String?
+  language    String   @default("tr") // tr, en, etc.
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories  Category[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("menus")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  menuId      String
+  name        String
+  description String?
+  icon        String?  // Icon name or URL
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  menu        Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  products    Product[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([menuId, order])
+  @@map("categories")
+}
+
+// ============================================
+// PRODUCTS
+// ============================================
+
+model Product {
+  id            String   @id @default(uuid())
+  categoryId    String
+  name          String
+  description   String?
+  price         Float
+  image         String?  // URL to image
+  allergens     String[] // ["gluten", "milk", "nuts"]
+  isPopular     Boolean  @default(false)
+  isVegan       Boolean  @default(false)
+  isAvailable   Boolean  @default(true)
+  stock         Int?     // null = unlimited
+  order         Int      @default(0)
+  
+  // Relations
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  options       ProductOption[]
+  orderItems    OrderItem[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([categoryId, isAvailable])
+  @@index([categoryId, isPopular])
+  @@map("products")
+}
+
+model ProductOption {
+  id          String   @id @default(uuid())
+  productId   String
+  type        String   // "size", "extra", "milk", "topping"
+  name        String   // "Large", "Badem Sütü", "Ekstra Peynir"
+  price       Float    @default(0)
+  isRequired  Boolean  @default(false)
+  order       Int      @default(0)
+  
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([productId])
+  @@map("product_options")
+}
+
+// ============================================
+// TABLES & QR CODES
+// ============================================
+
+model Table {
+  id          String   @id @default(uuid())
+  userId      String
+  number      String   // "12" or "A5"
+  qrCode      String   @unique // URL slug: "table-12"
+  name        String?  // Optional: "Bahçe Masası"
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, number])
+  @@index([userId, isActive])
+  @@map("tables")
+}
+
+// ============================================
+// ORDERS
+// ============================================
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+  CALL_WAITER
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  tableId         String
+  userId          String
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod?
+  totalAmount     Float
+  notes           String?
+  estimatedTime   Int?          // minutes
+  customerName    String?
+  customerPhone   String?
+  
+  // Relations
+  table           Table         @relation(fields: [tableId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([tableId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  productId   String
+  quantity    Int      @default(1)
+  price       Float    // Price at time of order
+  notes       String?  // Custom notes for this item
+  options     Json?    // Selected options: {size: "Large", milk: "Badem"}
+  
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ============================================
+// CAMPAIGNS & PROMOTIONS
+// ============================================
+
+model Campaign {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  discount    Float     // Percentage or fixed amount
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean   @default(true)
+  
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, isActive])
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+

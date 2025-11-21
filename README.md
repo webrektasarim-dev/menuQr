@@ -44,10 +44,9 @@ Each business has isolated data via `userId` in all queries.
 
 ## 📚 Documentation
 
-- **[PRODUCTION_SETUP.md](./PRODUCTION_SETUP.md)** - Production deployment rehberi
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Detaylı deployment bilgileri
-- **[QUICK_DEPLOY.md](./QUICK_DEPLOY.md)** - Hızlı deployment
-- **[SETUP.md](./SETUP.md)** - Local development (opsiyonel)
+- **[VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)** - Vercel deployment rehberi
+- **[SUPABASE_CONFIG.md](./SUPABASE_CONFIG.md)** - Supabase configuration
+- **[ENV_VARIABLES_GUIDE.md](./ENV_VARIABLES_GUIDE.md)** - Environment variables rehberi
 
 ## 📄 License
 

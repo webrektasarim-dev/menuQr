@@ -43,8 +43,9 @@ lerna-debug.log*
 *.sqlite
 
 # Prisma
+frontend/prisma/migrations/
+!frontend/prisma/migrations/.gitkeep
 backend/prisma/migrations/
-!backend/prisma/migrations/.gitkeep
 
 # Temporary
 tmp/
