@@ -12,46 +12,48 @@ function getDatabaseUrl(): string {
     throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
   }
 
-  // If using old format (db.wczfwumhfhuwdrbhyujr.supabase.co), convert to pooling URL
-  if (url.includes('db.wczfwumhfhuwdrbhyujr.supabase.co')) {
-    console.warn('⚠️ Old database URL format detected. Using connection pooling URL instead.')
-    // Convert to connection pooling URL
-    const newUrl = url.replace(
-      'db.wczfwumhfhuwdrbhyujr.supabase.co:5432',
-      'aws-0-eu-central-1.pooler.supabase.com:5432'
-    ).replace(
-      'postgres://',
-      'postgresql://'
-    )
-    
-    // Add pgbouncer params if not present
-    if (!newUrl.includes('pgbouncer=true')) {
-      const separator = newUrl.includes('?') ? '&' : '?'
-      return `${newUrl}${separator}pgbouncer=true&connection_limit=1`
-    }
-    
-    return newUrl
-  }
-
-  // If using Supabase connection pooling, ensure pgbouncer params are correct
-  if (url.includes('pooler.supabase.com')) {
+  try {
     const urlObj = new URL(url)
     
-    // Ensure pgbouncer=true
-    if (!urlObj.searchParams.has('pgbouncer')) {
-      urlObj.searchParams.set('pgbouncer', 'true')
+    // If using old format (db.wczfwumhfhuwdrbhyujr.supabase.co), convert to pooling URL
+    if (url.includes('db.wczfwumhfhuwdrbhyujr.supabase.co')) {
+      console.warn('⚠️ Old database URL format detected. Converting to connection pooling URL.')
+      urlObj.hostname = 'aws-0-eu-central-1.pooler.supabase.com'
+      urlObj.port = '5432'
     }
     
-    // Ensure connection_limit=1 for Prisma
-    if (!urlObj.searchParams.has('connection_limit')) {
-      urlObj.searchParams.set('connection_limit', '1')
+    // If using Supabase connection pooling, configure for Prisma
+    if (urlObj.hostname.includes('pooler.supabase.com')) {
+      // For Prisma with Supabase, use Transaction mode (port 5432) WITHOUT pgbouncer params
+      // OR use Direct connection without pooling
+      // Remove pgbouncer params - Prisma doesn't work well with transaction mode + pgbouncer
+      urlObj.searchParams.delete('pgbouncer')
+      urlObj.searchParams.delete('connection_limit')
+      
+      // Ensure postgresql:// protocol
+      urlObj.protocol = 'postgresql:'
+      
+      // Return connection pooling URL without pgbouncer (acts as direct connection through pooler)
+      return urlObj.toString()
     }
     
-    // Ensure postgresql:// protocol
-    return urlObj.toString().replace('postgres://', 'postgresql://')
+    // Ensure postgresql:// protocol for all URLs
+    if (urlObj.protocol === 'postgres:') {
+      urlObj.protocol = 'postgresql:'
+    }
+    
+    return urlObj.toString()
+  } catch (e) {
+    console.error('Error parsing DATABASE_URL:', e)
+    // If URL parsing fails, try to fix common issues
+    let fixedUrl = url.replace('postgres://', 'postgresql://')
+    
+    // Remove pgbouncer params if present (causing issues)
+    fixedUrl = fixedUrl.replace(/[?&]pgbouncer=true/g, '')
+    fixedUrl = fixedUrl.replace(/[?&]connection_limit=\d+/g, '')
+    
+    return fixedUrl
   }
-
-  return url
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
