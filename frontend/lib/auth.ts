@@ -20,9 +20,13 @@ export function signToken(payload: { sub: string; email: string; role: string })
   if (!JWT_SECRET) {
     throw new Error('JWT_SECRET is not set')
   }
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  } as jwt.SignOptions)
+  return jwt.sign(
+    payload,
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    } as jwt.SignOptions
+  ) as string
 }
 
 export function verifyToken(token: string): { sub: string; email: string; role: string } | null {
@@ -30,8 +34,11 @@ export function verifyToken(token: string): { sub: string; email: string; role: 
     if (!JWT_SECRET) {
       return null
     }
-    const decoded = jwt.verify(token, JWT_SECRET) as { sub: string; email: string; role: string }
-    return decoded
+    const decoded = jwt.verify(token, JWT_SECRET)
+    if (typeof decoded === 'object' && decoded !== null && 'sub' in decoded) {
+      return decoded as { sub: string; email: string; role: string }
+    }
+    return null
   } catch {
     return null
   }
