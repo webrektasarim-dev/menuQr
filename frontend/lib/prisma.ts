@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 
 // Connection string validation and formatting
 function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL
+  let url = process.env.DATABASE_URL
   
   // During build time, DATABASE_URL might not be available
   // Return a placeholder that will be replaced at runtime
@@ -19,6 +19,16 @@ function getDatabaseUrl(): string {
     // During build/dev, use a placeholder
     return 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
   }
+
+  // Remove psql command if accidentally included
+  if (url.startsWith('psql')) {
+    console.warn('⚠️ psql command detected in DATABASE_URL. Removing it.')
+    // Remove "psql " prefix and quotes
+    url = url.replace(/^psql\s+['"]?/, '').replace(/['"]$/, '')
+  }
+
+  // Remove leading/trailing quotes if present
+  url = url.trim().replace(/^['"]|['"]$/g, '')
 
   // If using Neon, return as-is (Neon connection strings are already correct)
   if (url.includes('neon.tech') || url.includes('neon.tech')) {
