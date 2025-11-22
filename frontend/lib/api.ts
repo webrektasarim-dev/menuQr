@@ -22,10 +22,17 @@ api.interceptors.request.use((config) => {
       }
     }
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // Ensure headers object exists
+      if (!config.headers) {
+        config.headers = {} as any
+      }
+      // Set Authorization header (case-sensitive)
+      config.headers['Authorization'] = `Bearer ${token}`
     }
   }
   return config
+}, (error) => {
+  return Promise.reject(error)
 })
 
 // Track if we're already redirecting to prevent loops

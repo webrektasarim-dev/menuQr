@@ -24,8 +24,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes
-  const authHeader = request.headers.get('authorization')
-  const token = authHeader?.replace('Bearer ', '')
+  // Check both 'authorization' and 'Authorization' headers (case-insensitive)
+  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim()
 
   if (!token) {
     return NextResponse.json(
