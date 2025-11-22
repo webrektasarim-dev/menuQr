@@ -15,17 +15,8 @@ function getDatabaseUrl(): string {
   try {
     const urlObj = new URL(url)
     
-    // If using old format (db.wczfwumhfhuwdrbhyujr.supabase.co), convert to pooling URL
-    if (url.includes('db.wczfwumhfhuwdrbhyujr.supabase.co')) {
-      console.warn('⚠️ Old database URL format detected. Converting to connection pooling URL.')
-      urlObj.hostname = 'aws-0-eu-central-1.pooler.supabase.com'
-      urlObj.port = '5432'
-    }
-    
-    // If using Supabase connection pooling, configure for Prisma
+    // If using Supabase connection pooling (pooler.supabase.com), remove pgbouncer params
     if (urlObj.hostname.includes('pooler.supabase.com')) {
-      // For Prisma with Supabase, use Transaction mode (port 5432) WITHOUT pgbouncer params
-      // OR use Direct connection without pooling
       // Remove pgbouncer params - Prisma doesn't work well with transaction mode + pgbouncer
       urlObj.searchParams.delete('pgbouncer')
       urlObj.searchParams.delete('connection_limit')
@@ -33,14 +24,18 @@ function getDatabaseUrl(): string {
       // Ensure postgresql:// protocol
       urlObj.protocol = 'postgresql:'
       
-      // Return connection pooling URL without pgbouncer (acts as direct connection through pooler)
       return urlObj.toString()
     }
     
-    // Ensure postgresql:// protocol for all URLs
+    // For direct connection (db.wczfwumhfhuwdrbhyujr.supabase.co), use as-is
+    // Just ensure postgresql:// protocol
     if (urlObj.protocol === 'postgres:') {
       urlObj.protocol = 'postgresql:'
     }
+    
+    // Remove any pgbouncer params if accidentally present in direct connection
+    urlObj.searchParams.delete('pgbouncer')
+    urlObj.searchParams.delete('connection_limit')
     
     return urlObj.toString()
   } catch (e) {
