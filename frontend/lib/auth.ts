@@ -5,6 +5,11 @@ import { prisma } from './prisma'
 const JWT_SECRET: string = process.env.JWT_SECRET || 'cafeqr-super-secret-jwt-key-2024'
 const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d'
 
+// Warn if using default secret in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('⚠️ [Auth] WARNING: JWT_SECRET is not set! Using default secret. This is insecure!')
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
 }

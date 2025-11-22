@@ -26,8 +26,9 @@ api.interceptors.request.use((config) => {
       if (!config.headers) {
         config.headers = {} as any
       }
-      // Set Authorization header (case-sensitive)
+      // Set Authorization header - use both methods for compatibility
       config.headers['Authorization'] = `Bearer ${token}`
+      config.headers['authorization'] = `Bearer ${token}` // lowercase for compatibility
       
       // Always log in production for debugging
       console.log('🔑 [API] Token added to request:', {
@@ -35,7 +36,7 @@ api.interceptors.request.use((config) => {
         hasToken: !!token,
         tokenLength: token.length,
         tokenPrefix: token.substring(0, 20) + '...',
-        headerSet: !!config.headers['Authorization']
+        headerSet: !!config.headers['Authorization'] || !!config.headers['authorization']
       })
     } else {
       // Always log when no token

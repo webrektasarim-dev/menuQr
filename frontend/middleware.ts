@@ -25,35 +25,50 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes
-  // Check both 'authorization' and 'Authorization' headers (case-insensitive)
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
+  // Check all possible header variations (case-insensitive)
+  const authHeader = 
+    request.headers.get('authorization') || 
+    request.headers.get('Authorization') ||
+    request.headers.get('AUTHORIZATION') ||
+    request.headers.get('x-authorization') ||
+    request.headers.get('X-Authorization')
   
-  // Debug: Log all headers for troubleshooting
+  // Debug: Log request info
   console.log('🔍 [Middleware] Request:', {
     path: request.nextUrl.pathname,
+    method: request.method,
     hasAuthHeader: !!authHeader,
-    allHeaders: Object.fromEntries(request.headers.entries())
+    authHeaderPrefix: authHeader ? authHeader.substring(0, 30) : 'none'
   })
   
   if (!authHeader) {
     console.error('❌ [Middleware] No authorization header found')
     return NextResponse.json(
-      { message: 'Unauthorized: No authorization header', path: request.nextUrl.pathname },
+      { 
+        message: 'Unauthorized: No authorization header', 
+        path: request.nextUrl.pathname,
+        hint: 'Make sure to send Authorization header with Bearer token'
+      },
       { status: 401 }
     )
   }
   
-  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  // Extract token - handle various formats
+  let token = authHeader.replace(/^Bearer\s+/i, '').trim()
+  token = token.replace(/^bearer\s+/i, '').trim()
 
-  if (!token) {
+  if (!token || token === 'Bearer' || token === 'bearer') {
     console.error('❌ [Middleware] No token in authorization header')
     return NextResponse.json(
-      { message: 'Unauthorized: No token provided', authHeader: authHeader.substring(0, 20) },
+      { 
+        message: 'Unauthorized: No token provided', 
+        authHeaderPrefix: authHeader.substring(0, 30)
+      },
       { status: 401 }
     )
   }
 
-  console.log('🔑 [Middleware] Token received:', {
+  console.log('🔑 [Middleware] Token extracted:', {
     tokenLength: token.length,
     tokenPrefix: token.substring(0, 20) + '...'
   })
@@ -63,7 +78,10 @@ export async function middleware(request: NextRequest) {
   if (!payload) {
     console.error('❌ [Middleware] Token verification failed')
     return NextResponse.json(
-      { message: 'Unauthorized: Invalid or expired token' },
+      { 
+        message: 'Unauthorized: Invalid or expired token',
+        hint: 'Check JWT_SECRET in Vercel environment variables'
+      },
       { status: 401 }
     )
   }
