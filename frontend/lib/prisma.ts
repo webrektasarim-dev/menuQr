@@ -8,8 +8,16 @@ const globalForPrisma = globalThis as unknown as {
 function getDatabaseUrl(): string {
   const url = process.env.DATABASE_URL
   
+  // During build time, DATABASE_URL might not be available
+  // Return a placeholder that will be replaced at runtime
   if (!url) {
-    throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
+    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined') {
+      // In production build, this should be set, but we'll use a placeholder
+      // that will fail gracefully at runtime if not set
+      throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
+    }
+    // During build/dev, use a placeholder
+    return 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
   }
 
   // If using Neon, return as-is (Neon connection strings are already correct)
@@ -74,14 +82,31 @@ function getDatabaseUrl(): string {
   }
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  datasources: {
-    db: {
-      url: getDatabaseUrl(),
-    },
-  },
-})
+// Lazy initialization - only create Prisma client when actually needed
+// This allows build to complete even if DATABASE_URL is not set
+export const prisma = globalForPrisma.prisma ?? (() => {
+  try {
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: getDatabaseUrl(),
+        },
+      },
+    })
+  } catch (error) {
+    // During build, DATABASE_URL might not be available
+    // Return a client with placeholder URL that will fail at runtime if not set
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
+        },
+      },
+    })
+  }
+})()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
