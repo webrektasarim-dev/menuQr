@@ -8,16 +8,16 @@ import Link from 'next/link'
 import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 export default function SettingsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [processingPayment, setProcessingPayment] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    // Mark as mounted to prevent SSR issues
+    setIsMounted(true)
+    
     // Only check on client side
     if (typeof window === 'undefined') return
     
@@ -32,6 +32,7 @@ export default function SettingsPage() {
     
     if (!token) {
       router.replace('/auth/login')
+      return
     }
 
     // Payment callback kontrolü
@@ -44,6 +45,18 @@ export default function SettingsPage() {
       toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
     }
   }, [router, searchParams])
+
+  // Prevent SSR rendering issues
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-primary-light">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-accent mx-auto mb-4"></div>
+          <div>Yükleniyor...</div>
+        </div>
+      </div>
+    )
+  }
 
   const { data: planInfo, isLoading, error: planError, refetch } = useQuery({
     queryKey: ['plan-info'],
