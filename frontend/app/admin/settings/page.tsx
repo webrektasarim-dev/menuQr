@@ -28,24 +28,41 @@ export default function SettingsPage() {
     }
   }, [router])
 
-  const { data: planInfo, isLoading } = useQuery({
+  const { data: planInfo, isLoading, error: planError } = useQuery({
     queryKey: ['plan-info'],
     queryFn: async () => {
-      const { data } = await api.get('/users/me/plan')
-      return data
+      try {
+        const { data } = await api.get('/users/me/plan')
+        return data
+      } catch (error: any) {
+        // If 401, don't throw - just return null
+        if (error.response?.status === 401) {
+          return null
+        }
+        throw error
+      }
     },
+    retry: false,
   })
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Yükleniyor...</div>
+      <div className="min-h-screen flex items-center justify-center bg-primary-light">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-accent mx-auto mb-4"></div>
+          <div>Yükleniyor...</div>
+        </div>
       </div>
     )
   }
 
-  const isPremium = planInfo?.plan === 'PREMIUM'
-  const limits = planInfo?.limits || {}
+  // If error or no plan info, show default values
+  const isPremium = planInfo?.plan === 'PREMIUM' || false
+  const limits = planInfo?.limits || {
+    categories: { current: 0, limit: 5 },
+    products: { current: 0, limit: 50 },
+    tables: { current: 0, limit: 3 },
+  }
 
   return (
     <div className="min-h-screen bg-primary-light">

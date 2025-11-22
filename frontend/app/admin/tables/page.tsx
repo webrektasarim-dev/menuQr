@@ -97,15 +97,39 @@ export default function TablesPage() {
     return `${baseUrl}/menu/${user.slug}/${table.number}`
   }
 
-  const downloadQR = (table: any) => {
+  const downloadQR = async (table: any) => {
     const qrUrl = generateQRUrl(table)
     if (!qrUrl) {
       toast.error('QR URL oluşturulamadı')
       return
     }
 
-    // Create QR code image using a QR code API or library
-    // For now, we'll copy the URL to clipboard
+    try {
+      // Generate QR code image using QR Server API
+      const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`
+      
+      // Create a temporary link to download the QR code
+      const link = document.createElement('a')
+      link.href = qrCodeImageUrl
+      link.download = `QR-Masa-${table.number}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast.success('QR kod indirildi!')
+    } catch (error) {
+      // Fallback: copy URL to clipboard
+      navigator.clipboard.writeText(qrUrl)
+      toast.success('QR URL kopyalandı!')
+    }
+  }
+
+  const copyQRUrl = (table: any) => {
+    const qrUrl = generateQRUrl(table)
+    if (!qrUrl) {
+      toast.error('QR URL oluşturulamadı')
+      return
+    }
     navigator.clipboard.writeText(qrUrl)
     toast.success('QR URL kopyalandı!')
   }
@@ -185,6 +209,13 @@ export default function TablesPage() {
                 >
                   <Download className="w-4 h-4" />
                   QR İndir
+                </button>
+                <button
+                  onClick={() => copyQRUrl(table)}
+                  className="bg-primary-accent text-white py-2 px-4 rounded-lg hover:bg-primary-accent/90"
+                  title="URL Kopyala"
+                >
+                  📋
                 </button>
                 <button
                   onClick={() => {

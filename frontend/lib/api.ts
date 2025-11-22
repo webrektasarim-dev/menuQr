@@ -50,7 +50,8 @@ api.interceptors.response.use(
           currentPath === '/admin/dashboard' ||
           currentPath.startsWith('/admin/menu') ||
           currentPath.startsWith('/admin/tables') ||
-          currentPath.startsWith('/admin/orders')
+          currentPath.startsWith('/admin/orders') ||
+          currentPath.startsWith('/admin/settings')
         ) {
           // Just reject the error, don't redirect
           return Promise.reject(error)

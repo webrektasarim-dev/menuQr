@@ -66,7 +66,7 @@ export default function MenuPage() {
   })
 
   // Create category
-  const { mutate: createCategory } = useMutation({
+  const { mutate: createCategory, isPending: isCreatingCategory } = useMutation({
     mutationFn: async (categoryData: any) => {
       const { data } = await api.post('/categories', categoryData)
       return data
@@ -76,6 +76,9 @@ export default function MenuPage() {
       toast.success('Kategori eklendi!')
       setShowCategoryModal(false)
       setEditingCategory(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Kategori eklenirken hata oluştu')
     },
   })
 
@@ -102,10 +105,13 @@ export default function MenuPage() {
       queryClient.invalidateQueries({ queryKey: ['menu'] })
       toast.success('Kategori silindi!')
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Kategori silinirken hata oluştu')
+    },
   })
 
   // Create product
-  const { mutate: createProduct } = useMutation({
+  const { mutate: createProduct, isPending: isCreatingProduct } = useMutation({
     mutationFn: async (productData: any) => {
       const { data } = await api.post('/products', productData)
       return data
@@ -115,6 +121,9 @@ export default function MenuPage() {
       toast.success('Ürün eklendi!')
       setShowProductModal(false)
       setEditingProduct(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Ürün eklenirken hata oluştu')
     },
   })
 
@@ -140,6 +149,9 @@ export default function MenuPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menu'] })
       toast.success('Ürün silindi!')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Ürün silinirken hata oluştu')
     },
   })
 
@@ -218,32 +230,61 @@ export default function MenuPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Category Filter */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-lg ${
-              selectedCategory === null
-                ? 'bg-primary-accent text-white'
-                : 'bg-white text-gray-700'
-            }`}
-          >
-            Tümü
-          </button>
-          {categories.map((category: any) => (
+        {/* Categories Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Kategoriler</h2>
+          <div className="flex gap-2 flex-wrap mb-4">
             <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
+              onClick={() => setSelectedCategory(null)}
               className={`px-4 py-2 rounded-lg ${
-                selectedCategory === category.id
+                selectedCategory === null
                   ? 'bg-primary-accent text-white'
                   : 'bg-white text-gray-700'
               }`}
             >
-              {category.name}
+              Tümü
             </button>
-          ))}
+            {categories.map((category: any) => (
+              <div key={category.id} className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedCategory === category.id
+                      ? 'bg-primary-accent text-white'
+                      : 'bg-white text-gray-700'
+                  }`}
+                >
+                  {category.name}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingCategory(category)
+                    setShowCategoryModal(true)
+                  }}
+                  className="p-2 text-gray-600 hover:text-primary-accent"
+                  title="Düzenle"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`${category.name} kategorisini silmek istediğinize emin misiniz? Bu kategorideki tüm ürünler de silinecektir.`)) {
+                      deleteCategory(category.id)
+                    }
+                  }}
+                  className="p-2 text-red-500 hover:text-red-700"
+                  title="Sil"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Products Section */}
+        <div>
+          <h2 className="text-xl font-bold mb-4">Ürünler</h2>
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -306,6 +347,7 @@ export default function MenuPage() {
       {showCategoryModal && (
         <CategoryModal
           category={editingCategory}
+          isPending={isCreatingCategory}
           onClose={() => {
             setShowCategoryModal(false)
             setEditingCategory(null)
@@ -325,6 +367,7 @@ export default function MenuPage() {
         <ProductModal
           product={editingProduct}
           categories={categories}
+          isPending={isCreatingProduct}
           onClose={() => {
             setShowProductModal(false)
             setEditingProduct(null)
@@ -345,10 +388,12 @@ export default function MenuPage() {
 // Category Modal Component
 function CategoryModal({
   category,
+  isPending,
   onClose,
   onSave,
 }: {
   category: any
+  isPending?: boolean
   onClose: () => void
   onSave: (data: any) => void
 }) {
@@ -432,11 +477,13 @@ function CategoryModal({
 function ProductModal({
   product,
   categories,
+  isPending,
   onClose,
   onSave,
 }: {
   product: any
   categories: any[]
+  isPending?: boolean
   onClose: () => void
   onSave: (data: any) => void
 }) {
