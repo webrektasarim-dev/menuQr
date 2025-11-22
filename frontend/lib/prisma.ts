@@ -96,7 +96,15 @@ function getDatabaseUrl(): string {
 function getDatabaseUrlForClient(): string {
   const url = process.env.DATABASE_URL
   
+  // During build, DATABASE_URL might not be available - use placeholder
+  // This will be replaced at runtime when DATABASE_URL is available
   if (!url) {
+    // Check if we're in build phase (Next.js build)
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_PHASE === 'phase-development-build') {
+      // During build, return placeholder - will fail gracefully at runtime if not set
+      return 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
+    }
+    // At runtime, DATABASE_URL must be set
     throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
   }
 
@@ -151,15 +159,20 @@ function getDatabaseUrlForClient(): string {
   }
 }
 
-// Prisma client initialization
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  datasources: {
-    db: {
-      url: getDatabaseUrlForClient(),
+// Prisma client initialization with lazy URL resolution
+export const prisma = globalForPrisma.prisma ?? (() => {
+  // Get URL - will use placeholder during build if DATABASE_URL not available
+  const dbUrl = getDatabaseUrlForClient()
+  
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
     },
-  },
-})
+  })
+})()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
