@@ -292,7 +292,7 @@ export default function MenuPage() {
         <div>
           <h2 className="text-xl font-bold mb-4">Ürünler</h2>
 
-        {/* Products Grid */}
+          {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product: any) => (
             <div
@@ -341,12 +341,13 @@ export default function MenuPage() {
           ))}
         </div>
 
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Henüz ürün yok</p>
-          </div>
-        )}
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Henüz ürün yok</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Category Modal */}
@@ -468,9 +469,10 @@ function CategoryModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90"
+              disabled={isPending}
+              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90 disabled:opacity-50"
             >
-              Kaydet
+              {isPending ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>
