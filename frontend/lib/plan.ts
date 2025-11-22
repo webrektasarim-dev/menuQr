@@ -174,13 +174,19 @@ export async function checkLimit(
 export async function checkLicense(userId: string): Promise<{ isValid: boolean; expiresAt: Date | null }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { licenseExpiresAt: true },
+    select: { plan: true, licenseExpiresAt: true },
   })
 
   if (!user) {
     return { isValid: false, expiresAt: null }
   }
 
+  // BASIC plan için her zaman geçerli (lisans kontrolü yok)
+  if (user.plan === 'BASIC') {
+    return { isValid: true, expiresAt: null }
+  }
+
+  // PREMIUM plan için lisans kontrolü
   if (!user.licenseExpiresAt) {
     return { isValid: false, expiresAt: null }
   }

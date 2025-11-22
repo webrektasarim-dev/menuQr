@@ -13,6 +13,7 @@ function SettingsContent() {
   const searchParams = useSearchParams()
   const [processingPayment, setProcessingPayment] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
 
   useEffect(() => {
     // Mark as mounted to prevent SSR issues
@@ -34,19 +35,29 @@ function SettingsContent() {
       router.replace('/auth/login')
       return
     }
+
+    // Get payment status from URL safely
+    try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const status = urlParams.get('payment')
+      if (status) {
+        setPaymentStatus(status)
+      }
+    } catch (error) {
+      console.error('Error reading payment status:', error)
+    }
   }, [router])
 
   // Separate effect for payment callback to avoid dependency issues
   useEffect(() => {
-    if (!isMounted || typeof window === 'undefined') return
+    if (!isMounted || !paymentStatus || typeof window === 'undefined') return
     
     try {
-      const paymentStatus = searchParams?.get('payment')
       if (paymentStatus === 'success') {
         toast.success('Ödeme başarılı! Lisansınız aktif edildi.')
         // Plan bilgilerini yenile
         setTimeout(() => {
-          window.location.reload()
+          window.location.href = '/admin/settings'
         }, 1000)
       } else if (paymentStatus === 'failed') {
         toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
@@ -54,7 +65,7 @@ function SettingsContent() {
     } catch (error) {
       console.error('Error checking payment status:', error)
     }
-  }, [isMounted]) // Only depend on isMounted
+  }, [isMounted, paymentStatus]) // Only depend on isMounted and paymentStatus
 
   // Prevent SSR rendering issues
   if (!isMounted) {

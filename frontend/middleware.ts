@@ -44,6 +44,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Lisans kontrolü (sadece admin işlemleri için)
+  // Not: BASIC plan için lisans kontrolü yapılmaz (her zaman geçerli)
+  // PREMIUM plan için lisans kontrolü validateLicense içinde yapılır
   const adminRoutes = [
     '/api/v1/menus',
     '/api/v1/categories',
@@ -58,6 +60,8 @@ export async function middleware(request: NextRequest) {
   )
 
   if (isAdminRoute) {
+    // validateLicense fonksiyonu içinde BASIC plan kontrolü yapılıyor
+    // BASIC plan için her zaman geçerli döner
     const licenseCheck = await validateLicense(payload.sub)
     if (!licenseCheck.valid) {
       return NextResponse.json(
