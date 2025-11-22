@@ -7,16 +7,7 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Edit, Trash2, Package, QrCode, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
-import dynamic from 'next/dynamic'
-
-// Dynamic import for QRCode to avoid SSR issues
-const QRCode = dynamic(
-  () => import('qrcode.react'),
-  {
-    ssr: false,
-    loading: () => <div className="w-32 h-32 bg-gray-200 animate-pulse rounded"></div>,
-  }
-)
+import { useEffect, useState } from 'react'
 
 export default function MenuPage() {
   const router = useRouter()
@@ -26,6 +17,7 @@ export default function MenuPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [editingCategory, setEditingCategory] = useState<any>(null)
+  const [QRCodeComponent, setQRCodeComponent] = useState<any>(null)
 
   useEffect(() => {
     // Only check on client side
@@ -43,6 +35,11 @@ export default function MenuPage() {
     if (!token) {
       router.replace('/auth/login')
     }
+
+    // Load QRCode component only on client side
+    import('qrcode.react').then((mod) => {
+      setQRCodeComponent(() => mod.default || mod)
+    })
   }, [router])
 
   // Get menu with categories and products
@@ -298,13 +295,19 @@ export default function MenuPage() {
             <h2 className="text-xl font-bold mb-4">Menü QR Kodu</h2>
             <div className="flex items-center gap-6">
               <div className="p-4 bg-gray-50 rounded-lg">
-                <QRCode
-                  id="menu-qrcode"
-                  value={generateMenuQRUrl()}
-                  size={128}
-                  level="H"
-                  includeMargin={false}
-                />
+                {QRCodeComponent ? (
+                  <QRCodeComponent
+                    id="menu-qrcode"
+                    value={generateMenuQRUrl()}
+                    size={128}
+                    level="H"
+                    includeMargin={false}
+                  />
+                ) : (
+                  <div className="w-32 h-32 bg-gray-200 animate-pulse rounded flex items-center justify-center">
+                    <QrCode className="w-16 h-16 text-gray-400" />
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-600 mb-2">Müşterileriniz bu QR kodu ile menünüze erişebilir:</p>
