@@ -120,8 +120,9 @@ export default function DashboardPage() {
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       // Verify token exists before making API calls
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
       if (!token) {
+        console.warn('⚠️ No token found, returning default stats')
         return {
           menu: 0,
           tables: 0,
@@ -129,6 +130,15 @@ export default function DashboardPage() {
           todayOrders: 0,
           totalRevenue: 0,
         }
+      }
+      
+      // Debug: Log token info
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔑 Making API calls with token:', {
+          hasToken: !!token,
+          tokenLength: token.length,
+          tokenPrefix: token.substring(0, 20) + '...'
+        })
       }
 
       // Make API calls with proper error handling
