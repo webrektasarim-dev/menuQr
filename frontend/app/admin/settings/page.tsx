@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [processingPayment, setProcessingPayment] = useState(false)
@@ -384,5 +384,20 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-primary-light">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-accent mx-auto mb-4"></div>
+          <div>Yükleniyor...</div>
+        </div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   )
 }
