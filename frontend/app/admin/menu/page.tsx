@@ -632,9 +632,10 @@ function ProductModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90"
+              disabled={isPending}
+              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90 disabled:opacity-50"
             >
-              Kaydet
+              {isPending ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>
