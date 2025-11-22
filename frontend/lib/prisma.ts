@@ -92,31 +92,74 @@ function getDatabaseUrl(): string {
   }
 }
 
-// Lazy initialization - only create Prisma client when actually needed
-// This allows build to complete even if DATABASE_URL is not set
-export const prisma = globalForPrisma.prisma ?? (() => {
-  try {
-    return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-      datasources: {
-        db: {
-          url: getDatabaseUrl(),
-        },
-      },
-    })
-  } catch (error) {
-    // During build, DATABASE_URL might not be available
-    // Return a client with placeholder URL that will fail at runtime if not set
-    return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
-        },
-      },
-    })
+// Get database URL - always use environment variable at runtime
+function getDatabaseUrlForClient(): string {
+  const url = process.env.DATABASE_URL
+  
+  if (!url) {
+    throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
   }
-})()
+
+  // Remove psql command if accidentally included
+  let cleanUrl = url
+  if (cleanUrl.startsWith('psql')) {
+    cleanUrl = cleanUrl.replace(/^psql\s+['"]?/, '').replace(/['"]$/, '')
+  }
+
+  // Remove leading/trailing quotes if present
+  cleanUrl = cleanUrl.trim().replace(/^['"]|['"]$/g, '')
+
+  // If using Neon, return as-is
+  if (cleanUrl.includes('neon.tech')) {
+    return cleanUrl
+  }
+
+  // For other URLs, use the formatting function
+  try {
+    const urlObj = new URL(cleanUrl)
+    
+    // If using direct connection (db.wczfwumhfhuwdrbhyujr.supabase.co), convert to connection pooling
+    if (urlObj.hostname.includes('db.wczfwumhfhuwdrbhyujr.supabase.co')) {
+      urlObj.hostname = 'aws-0-eu-central-1.pooler.supabase.com'
+      urlObj.port = '5432'
+      urlObj.search = ''
+    }
+    
+    // If using Supabase connection pooling, ensure clean URL
+    if (urlObj.hostname.includes('pooler.supabase.com')) {
+      urlObj.searchParams.delete('pgbouncer')
+      urlObj.searchParams.delete('connection_limit')
+      urlObj.protocol = 'postgresql:'
+      return urlObj.toString()
+    }
+    
+    // Ensure postgresql:// protocol
+    if (urlObj.protocol === 'postgres:') {
+      urlObj.protocol = 'postgresql:'
+    }
+    
+    urlObj.searchParams.delete('pgbouncer')
+    urlObj.searchParams.delete('connection_limit')
+    
+    return urlObj.toString()
+  } catch (e) {
+    // If URL parsing fails, try basic fixes
+    let fixedUrl = cleanUrl.replace('postgres://', 'postgresql://')
+    fixedUrl = fixedUrl.replace(/[?&]pgbouncer=true/g, '')
+    fixedUrl = fixedUrl.replace(/[?&]connection_limit=\d+/g, '')
+    return fixedUrl
+  }
+}
+
+// Prisma client initialization
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: getDatabaseUrlForClient(),
+    },
+  },
+})
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
