@@ -32,14 +32,25 @@ export function signToken(payload: { sub: string; email: string; role: string })
 export function verifyToken(token: string): { sub: string; email: string; role: string } | null {
   try {
     if (!JWT_SECRET) {
+      console.error('JWT_SECRET is not set')
       return null
     }
+    
+    if (!token || token.trim() === '') {
+      return null
+    }
+    
     const decoded = jwt.verify(token, JWT_SECRET)
+    
     if (typeof decoded === 'object' && decoded !== null && 'sub' in decoded) {
       return decoded as { sub: string; email: string; role: string }
     }
     return null
-  } catch {
+  } catch (error: any) {
+    // Log error for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Token verification error:', error.message)
+    }
     return null
   }
 }

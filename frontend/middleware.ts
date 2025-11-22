@@ -26,11 +26,19 @@ export async function middleware(request: NextRequest) {
   // Protected routes
   // Check both 'authorization' and 'Authorization' headers (case-insensitive)
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
-  const token = authHeader?.replace(/^Bearer\s+/i, '').trim()
+  
+  if (!authHeader) {
+    return NextResponse.json(
+      { message: 'Unauthorized: No authorization header' },
+      { status: 401 }
+    )
+  }
+  
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim()
 
   if (!token) {
     return NextResponse.json(
-      { message: 'Unauthorized' },
+      { message: 'Unauthorized: No token provided' },
       { status: 401 }
     )
   }
@@ -39,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
   if (!payload) {
     return NextResponse.json(
-      { message: 'Invalid token' },
+      { message: 'Unauthorized: Invalid or expired token' },
       { status: 401 }
     )
   }
