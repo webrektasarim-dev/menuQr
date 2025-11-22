@@ -83,7 +83,7 @@ export default function MenuPage() {
   })
 
   // Update category
-  const { mutate: updateCategory } = useMutation({
+  const { mutate: updateCategory, isPending: isUpdatingCategory } = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { data: response } = await api.patch(`/categories/${id}`, data)
       return response
@@ -93,6 +93,9 @@ export default function MenuPage() {
       toast.success('Kategori güncellendi!')
       setShowCategoryModal(false)
       setEditingCategory(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Kategori güncellenirken hata oluştu')
     },
   })
 
@@ -128,7 +131,7 @@ export default function MenuPage() {
   })
 
   // Update product
-  const { mutate: updateProduct } = useMutation({
+  const { mutate: updateProduct, isPending: isUpdatingProduct } = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { data: response } = await api.patch(`/products/${id}`, data)
       return response
@@ -138,6 +141,9 @@ export default function MenuPage() {
       toast.success('Ürün güncellendi!')
       setShowProductModal(false)
       setEditingProduct(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Ürün güncellenirken hata oluştu')
     },
   })
 
@@ -347,7 +353,7 @@ export default function MenuPage() {
       {showCategoryModal && (
         <CategoryModal
           category={editingCategory}
-          isPending={isCreatingCategory}
+          isPending={editingCategory ? isUpdatingCategory : isCreatingCategory}
           onClose={() => {
             setShowCategoryModal(false)
             setEditingCategory(null)
@@ -367,7 +373,7 @@ export default function MenuPage() {
         <ProductModal
           product={editingProduct}
           categories={categories}
-          isPending={isCreatingProduct}
+          isPending={editingProduct ? isUpdatingProduct : isCreatingProduct}
           onClose={() => {
             setShowProductModal(false)
             setEditingProduct(null)
