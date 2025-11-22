@@ -9,6 +9,8 @@ export function middleware(request: NextRequest) {
     '/api/v1/menus/public',
     '/api/v1/tables/public',
     '/api/v1/health',
+    '/api/v1/test-db',
+    '/api/v1/check-db-url',
   ]
 
   const isPublicRoute = publicRoutes.some((route) =>
