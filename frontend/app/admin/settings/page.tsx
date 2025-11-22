@@ -197,7 +197,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">Mevcut Paket</h2>
             <span className="px-4 py-2 bg-primary-accent text-white rounded-lg font-semibold">
-              {PLAN_NAMES[planInfo?.plan || 'BASIC']}
+              {planInfo?.plan ? PLAN_NAMES[planInfo.plan] : PLAN_NAMES.BASIC}
             </span>
           </div>
 
