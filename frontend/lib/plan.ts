@@ -7,16 +7,28 @@ interface PlanLimits {
 }
 
 const PLAN_LIMITS: Record<string, PlanLimits> = {
-  FREE: {
-    categories: 5,
-    products: 50,
-    tables: 3,
+  BASIC: {
+    categories: 4,
+    products: 40, // 4 kategori × 10 ürün = 40 ürün
+    tables: 5,
   },
   PREMIUM: {
     categories: Infinity,
     products: Infinity,
     tables: Infinity,
   },
+}
+
+// Plan fiyatları (yıllık)
+export const PLAN_PRICES = {
+  BASIC: 399,
+  PREMIUM: 799,
+}
+
+// Plan isimleri
+export const PLAN_NAMES = {
+  BASIC: 'CafeQR Basic',
+  PREMIUM: 'CafeQR Premium',
 }
 
 export async function getPlanInfo(userId: string) {
@@ -102,15 +114,49 @@ export async function checkLimit(
       },
     })
   } else if (resource === 'products') {
-    current = await prisma.product.count({
-      where: {
-        category: {
+    // Basic plan için: her kategoride maksimum 10 ürün kontrolü
+    if (user.plan === 'BASIC') {
+      const categories = await prisma.category.findMany({
+        where: {
           menu: {
             userId,
           },
         },
-      },
-    })
+        include: {
+          products: true,
+        },
+      })
+      
+      // Her kategoride 10'dan fazla ürün var mı kontrol et
+      const hasExceededLimit = categories.some(cat => cat.products.length > 10)
+      if (hasExceededLimit) {
+        return {
+          allowed: false,
+          limit: 10,
+          current: Math.max(...categories.map(cat => cat.products.length)),
+        }
+      }
+      
+      current = await prisma.product.count({
+        where: {
+          category: {
+            menu: {
+              userId,
+            },
+          },
+        },
+      })
+    } else {
+      current = await prisma.product.count({
+        where: {
+          category: {
+            menu: {
+              userId,
+            },
+          },
+        },
+      })
+    }
   } else if (resource === 'tables') {
     current = await prisma.table.count({
       where: { userId },
@@ -122,5 +168,27 @@ export async function checkLimit(
     limit,
     current,
   }
+}
+
+// Lisans kontrolü
+export async function checkLicense(userId: string): Promise<{ isValid: boolean; expiresAt: Date | null }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { licenseExpiresAt: true },
+  })
+
+  if (!user) {
+    return { isValid: false, expiresAt: null }
+  }
+
+  if (!user.licenseExpiresAt) {
+    return { isValid: false, expiresAt: null }
+  }
+
+  const now = new Date()
+  const expiresAt = new Date(user.licenseExpiresAt)
+  const isValid = expiresAt > now
+
+  return { isValid, expiresAt }
 }
 

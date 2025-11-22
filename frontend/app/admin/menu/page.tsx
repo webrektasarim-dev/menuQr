@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Edit, Trash2, Package } from 'lucide-react'
+import { ArrowLeft, Plus, Edit, Trash2, Package, QrCode, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
+import QRCode from 'qrcode.react'
 
 export default function MenuPage() {
   const router = useRouter()
@@ -36,6 +37,14 @@ export default function MenuPage() {
   }, [router])
 
   // Get menu with categories and products
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const userData = localStorage.getItem('user')
+      return userData ? JSON.parse(userData) : null
+    },
+  })
+
   const { data: menu, isLoading } = useQuery({
     queryKey: ['menu'],
     queryFn: async () => {
@@ -52,6 +61,34 @@ export default function MenuPage() {
     },
     retry: false,
   })
+
+  const generateMenuQRUrl = () => {
+    if (!user?.slug) return ''
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/menu/${user.slug}`
+  }
+
+  const downloadMenuQR = () => {
+    const qrUrl = generateMenuQRUrl()
+    if (!qrUrl) {
+      toast.error('QR URL oluşturulamadı')
+      return
+    }
+
+    const canvas = document.getElementById('menu-qrcode') as HTMLCanvasElement
+    if (canvas) {
+      const pngUrl = canvas.toDataURL('image/png')
+      const downloadLink = document.createElement('a')
+      downloadLink.href = pngUrl
+      downloadLink.download = `menu-qr-${user?.slug || 'menu'}.png`
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
+      document.body.removeChild(downloadLink)
+      toast.success('Menü QR kodu indirildi!')
+    } else {
+      toast.error('QR kodu oluşturulamadı.')
+    }
+  }
 
   // Create menu if doesn't exist
   const { mutate: createMenu } = useMutation({
@@ -210,6 +247,16 @@ export default function MenuPage() {
               <h1 className="text-2xl font-bold text-primary">Menü Yönetimi</h1>
             </div>
             <div className="flex gap-2">
+              {user?.slug && (
+                <button
+                  onClick={downloadMenuQR}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                  title="Menü QR Kodunu İndir"
+                >
+                  <Download className="w-4 h-4" />
+                  Menü QR İndir
+                </button>
+              )}
               <button
                 onClick={() => {
                   setEditingCategory(null)
@@ -236,6 +283,37 @@ export default function MenuPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Menu QR Code Section */}
+        {user?.slug && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4">Menü QR Kodu</h2>
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <QRCode
+                  id="menu-qrcode"
+                  value={generateMenuQRUrl()}
+                  size={128}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 mb-2">Müşterileriniz bu QR kodu ile menünüze erişebilir:</p>
+                <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all mb-4">
+                  {generateMenuQRUrl()}
+                </p>
+                <button
+                  onClick={downloadMenuQR}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  QR Kodunu İndir
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Categories Section */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-4">Kategoriler</h2>

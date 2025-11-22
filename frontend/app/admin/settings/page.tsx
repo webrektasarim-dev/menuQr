@@ -1,14 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, Crown, Check } from 'lucide-react'
+import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [processingPayment, setProcessingPayment] = useState(false)
 
   useEffect(() => {
     // Only check on client side
@@ -26,16 +29,25 @@ export default function SettingsPage() {
     if (!token) {
       router.replace('/auth/login')
     }
-  }, [router])
 
-  const { data: planInfo, isLoading, error: planError } = useQuery({
+    // Payment callback kontrolü
+    const paymentStatus = searchParams.get('payment')
+    if (paymentStatus === 'success') {
+      toast.success('Ödeme başarılı! Lisansınız aktif edildi.')
+      // Plan bilgilerini yenile
+      window.location.reload()
+    } else if (paymentStatus === 'failed') {
+      toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
+    }
+  }, [router, searchParams])
+
+  const { data: planInfo, isLoading, error: planError, refetch } = useQuery({
     queryKey: ['plan-info'],
     queryFn: async () => {
       try {
         const { data } = await api.get('/users/me/plan')
         return data
       } catch (error: any) {
-        // If 401, don't throw - just return null
         if (error.response?.status === 401) {
           return null
         }
@@ -44,6 +56,41 @@ export default function SettingsPage() {
     },
     retry: false,
   })
+
+  const { data: userInfo } = useQuery({
+    queryKey: ['user-info'],
+    queryFn: async () => {
+      try {
+        const { data } = await api.get('/users/me')
+        return data
+      } catch (error: any) {
+        return null
+      }
+    },
+    retry: false,
+  })
+
+  const { mutate: createPayment } = useMutation({
+    mutationFn: async (plan: 'BASIC' | 'PREMIUM') => {
+      const { data } = await api.post('/payments/create', { plan })
+      return data
+    },
+    onSuccess: (data) => {
+      // PayTR ödeme sayfasına yönlendir
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Ödeme başlatılamadı')
+      setProcessingPayment(false)
+    },
+  })
+
+  const handlePayment = (plan: 'BASIC' | 'PREMIUM') => {
+    setProcessingPayment(true)
+    createPayment(plan)
+  }
 
   if (isLoading) {
     return (
@@ -56,13 +103,18 @@ export default function SettingsPage() {
     )
   }
 
-  // If error or no plan info, show default values
-  const isPremium = planInfo?.plan === 'PREMIUM' || false
+  const isPremium = planInfo?.plan === 'PREMIUM'
+  const isBasic = planInfo?.plan === 'BASIC'
   const limits = planInfo?.limits || {
-    categories: { current: 0, limit: 5 },
-    products: { current: 0, limit: 50 },
-    tables: { current: 0, limit: 3 },
+    categories: { current: 0, limit: 4 },
+    products: { current: 0, limit: 40 },
+    tables: { current: 0, limit: 5 },
   }
+
+  const licenseExpiresAt = userInfo?.licenseExpiresAt
+    ? new Date(userInfo.licenseExpiresAt)
+    : null
+  const isLicenseValid = licenseExpiresAt && licenseExpiresAt > new Date()
 
   return (
     <div className="min-h-screen bg-primary-light">
@@ -81,34 +133,41 @@ export default function SettingsPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* License Status */}
+        {licenseExpiresAt && (
+          <div className={`rounded-lg shadow-md p-6 mb-6 ${
+            isLicenseValid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+          }`}>
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className={`w-6 h-6 ${isLicenseValid ? 'text-green-600' : 'text-red-600'}`} />
+              <h3 className={`text-lg font-semibold ${isLicenseValid ? 'text-green-800' : 'text-red-800'}`}>
+                {isLicenseValid ? 'Lisansınız Aktif' : 'Lisansınız Süresi Dolmuş'}
+              </h3>
+            </div>
+            <p className={`text-sm ${isLicenseValid ? 'text-green-700' : 'text-red-700'}`}>
+              {isLicenseValid 
+                ? `Lisans bitiş tarihi: ${licenseExpiresAt.toLocaleDateString('tr-TR')}`
+                : `Lisans bitiş tarihi: ${licenseExpiresAt.toLocaleDateString('tr-TR')} - Lütfen paketinizi yenileyin.`
+              }
+            </p>
+          </div>
+        )}
+
         {/* Plan Info */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">Mevcut Paket</h2>
-            {isPremium && (
+            {isPremium ? (
               <div className="flex items-center gap-2 text-primary-accent">
                 <Crown className="w-6 h-6" />
-                <span className="font-semibold">PREMIUM</span>
+                <span className="font-semibold">CafeQR Premium</span>
               </div>
-            )}
-            {!isPremium && (
+            ) : (
               <span className="px-4 py-2 bg-gray-200 rounded-lg font-semibold">
-                FREE
+                CafeQR Basic
               </span>
             )}
           </div>
-
-          {!isPremium && (
-            <div className="bg-primary-accent/10 border border-primary-accent rounded-lg p-4 mb-4">
-              <h3 className="font-semibold mb-2">Premium'a Geçin</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Sınırsız kategori, ürün ve masa ile işletmenizi büyütün!
-              </p>
-              <button className="bg-primary-accent text-white px-6 py-2 rounded-lg hover:bg-primary-accent/90">
-                Premium'a Geç
-              </button>
-            </div>
-          )}
 
           {/* Limits */}
           <div className="space-y-4">
@@ -143,7 +202,7 @@ export default function SettingsPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">Ürünler</span>
+                <span className="font-medium">Ürünler (Kategori başına max 10)</span>
                 <span className="text-sm text-gray-600">
                   {limits.products?.current || 0} /{' '}
                   {limits.products?.limit === Infinity
@@ -203,34 +262,64 @@ export default function SettingsPage() {
 
         {/* Plan Comparison */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Basic Plan */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-bold mb-4">FREE Plan</h3>
-            <ul className="space-y-2">
+            <h3 className="text-xl font-bold mb-2">CafeQR Basic</h3>
+            <div className="text-3xl font-bold text-primary-accent mb-4">
+              399₺<span className="text-sm text-gray-600 font-normal">/yıl</span>
+            </div>
+            <ul className="space-y-2 mb-6">
               <li className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
-                <span>5 Kategori</span>
+                <span>4 Kategori</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
-                <span>50 Ürün</span>
+                <span>Her kategoride 10 ürün (Toplam 40 ürün)</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
-                <span>3 Masa</span>
+                <span>5 Masa</span>
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
                 <span>Temel sipariş takibi</span>
               </li>
             </ul>
+            <button
+              onClick={() => handlePayment('BASIC')}
+              disabled={processingPayment || (isBasic && isLicenseValid)}
+              className="w-full bg-primary-accent text-white py-3 rounded-lg hover:bg-primary-accent/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {processingPayment ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>İşleniyor...</span>
+                </>
+              ) : isBasic && isLicenseValid ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  <span>Aktif Paket</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5" />
+                  <span>Basic Paketi Satın Al</span>
+                </>
+              )}
+            </button>
           </div>
 
+          {/* Premium Plan */}
           <div className="bg-gradient-to-br from-primary-accent to-primary-accent/80 rounded-lg shadow-md p-6 text-white">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-2">
               <Crown className="w-6 h-6" />
-              <h3 className="text-xl font-bold">PREMIUM Plan</h3>
+              <h3 className="text-xl font-bold">CafeQR Premium</h3>
             </div>
-            <ul className="space-y-2">
+            <div className="text-3xl font-bold mb-4">
+              799₺<span className="text-sm font-normal opacity-90">/yıl</span>
+            </div>
+            <ul className="space-y-2 mb-6">
               <li className="flex items-center gap-2">
                 <Check className="w-5 h-5" />
                 <span>Sınırsız Kategori</span>
@@ -252,10 +341,31 @@ export default function SettingsPage() {
                 <span>Öncelikli destek</span>
               </li>
             </ul>
+            <button
+              onClick={() => handlePayment('PREMIUM')}
+              disabled={processingPayment || (isPremium && isLicenseValid)}
+              className="w-full bg-white text-primary-accent py-3 rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+            >
+              {processingPayment ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-accent"></div>
+                  <span>İşleniyor...</span>
+                </>
+              ) : isPremium && isLicenseValid ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  <span>Aktif Paket</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5" />
+                  <span>Premium Paketi Satın Al</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
     </div>
   )
 }
-

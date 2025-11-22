@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
+import { validateLicense } from '@/lib/license'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Public routes
   const publicRoutes = [
     '/api/v1/auth/register',
@@ -11,6 +12,7 @@ export function middleware(request: NextRequest) {
     '/api/v1/health',
     '/api/v1/test-db',
     '/api/v1/check-db-url',
+    '/api/v1/payments/callback', // PayTR callback
   ]
 
   const isPublicRoute = publicRoutes.some((route) =>
@@ -39,6 +41,30 @@ export function middleware(request: NextRequest) {
       { message: 'Invalid token' },
       { status: 401 }
     )
+  }
+
+  // Lisans kontrolü (sadece admin işlemleri için)
+  const adminRoutes = [
+    '/api/v1/menus',
+    '/api/v1/categories',
+    '/api/v1/products',
+    '/api/v1/tables',
+    '/api/v1/orders',
+  ]
+
+  const isAdminRoute = adminRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route) &&
+    !request.nextUrl.pathname.includes('/public')
+  )
+
+  if (isAdminRoute) {
+    const licenseCheck = await validateLicense(payload.sub)
+    if (!licenseCheck.valid) {
+      return NextResponse.json(
+        { message: licenseCheck.message || 'Lisansınız geçersiz veya süresi dolmuş' },
+        { status: 403 }
+      )
+    }
   }
 
   // Add user info to request headers
