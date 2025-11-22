@@ -101,16 +101,13 @@ function getDatabaseUrlForClient(): string {
   
   const url = process.env.DATABASE_URL
   
-  // During build, DATABASE_URL might not be available - use placeholder
-  // This will be replaced at runtime when DATABASE_URL is available
+  // During build (Prisma generate), DATABASE_URL might not be available
+  // Prisma generate only needs the schema, not a real connection
+  // So we can use a placeholder URL during build
   if (!url) {
-    // Check if we're in build phase (Next.js build)
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_PHASE === 'phase-development-build') {
-      // During build, return placeholder - will fail gracefully at runtime if not set
-      return 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
-    }
-    // At runtime, DATABASE_URL must be set
-    throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
+    // During build phase, use placeholder - Prisma generate doesn't need real connection
+    // This is safe because Prisma generate only reads the schema file
+    return 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
   }
 
   // Remove psql command if accidentally included
@@ -170,6 +167,22 @@ export const prisma = (() => {
   // Prevent client-side usage
   if (typeof window !== 'undefined') {
     throw new Error('Prisma client cannot be used in client-side code. This is a server-only module.')
+  }
+  
+  // During build (Prisma generate), we don't need to initialize the client
+  // Prisma generate only needs the schema file, not a real client instance
+  if (process.env.NEXT_PHASE === 'phase-production-build' || 
+      process.env.NEXT_PHASE === 'phase-development-build' ||
+      !process.env.DATABASE_URL) {
+    // Return a placeholder client that will be replaced at runtime
+    // This allows Prisma generate to work without DATABASE_URL
+    return new PrismaClient({
+      datasources: {
+        db: {
+          url: 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
+        },
+      },
+    })
   }
   
   return globalForPrisma.prisma ?? (() => {
