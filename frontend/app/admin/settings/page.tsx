@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { PLAN_NAMES, PLAN_PRICES } from '@/lib/plan'
 
-function SettingsContent() {
+export default function SettingsPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [processingPayment, setProcessingPayment] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
@@ -152,7 +152,8 @@ function SettingsContent() {
   const licenseExpiresAt = userInfo?.licenseExpiresAt
     ? new Date(userInfo.licenseExpiresAt)
     : null
-  const isLicenseValid = licenseExpiresAt ? licenseExpiresAt > new Date() : false
+  // BASIC plan için her zaman geçerli, PREMIUM için licenseExpiresAt kontrolü
+  const isLicenseValid = isBasic ? true : (licenseExpiresAt ? licenseExpiresAt > new Date() : false)
 
   return (
     <div className="min-h-screen bg-primary-light">
@@ -195,16 +196,9 @@ function SettingsContent() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold">Mevcut Paket</h2>
-            {isPremium ? (
-              <div className="flex items-center gap-2 text-primary-accent">
-                <Crown className="w-6 h-6" />
-                <span className="font-semibold">CafeQR Premium</span>
-              </div>
-            ) : (
-              <span className="px-4 py-2 bg-gray-200 rounded-lg font-semibold">
-                CafeQR Basic
-              </span>
-            )}
+            <span className="px-4 py-2 bg-primary-accent text-white rounded-lg font-semibold">
+              {PLAN_NAMES[planInfo?.plan || 'BASIC']}
+            </span>
           </div>
 
           {/* Limits */}
@@ -302,9 +296,9 @@ function SettingsContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Plan */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-bold mb-2">CafeQR Basic</h3>
+            <h3 className="text-xl font-bold mb-2">{PLAN_NAMES.BASIC}</h3>
             <div className="text-3xl font-bold text-primary-accent mb-4">
-              399₺<span className="text-sm text-gray-600 font-normal">/yıl</span>
+              {PLAN_PRICES.BASIC}₺<span className="text-sm text-gray-600 font-normal">/yıl</span>
             </div>
             <ul className="space-y-2 mb-6">
               <li className="flex items-center gap-2">
@@ -325,7 +319,11 @@ function SettingsContent() {
               </li>
             </ul>
             <button
-              onClick={() => handlePayment('BASIC')}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handlePayment('BASIC')
+              }}
               disabled={processingPayment || (isBasic && isLicenseValid)}
               className="w-full bg-primary-accent text-white py-3 rounded-lg hover:bg-primary-accent/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -352,10 +350,10 @@ function SettingsContent() {
           <div className="bg-gradient-to-br from-primary-accent to-primary-accent/80 rounded-lg shadow-md p-6 text-white">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-6 h-6" />
-              <h3 className="text-xl font-bold">CafeQR Premium</h3>
+              <h3 className="text-xl font-bold">{PLAN_NAMES.PREMIUM}</h3>
             </div>
             <div className="text-3xl font-bold mb-4">
-              799₺<span className="text-sm font-normal opacity-90">/yıl</span>
+              {PLAN_PRICES.PREMIUM}₺<span className="text-sm font-normal opacity-90">/yıl</span>
             </div>
             <ul className="space-y-2 mb-6">
               <li className="flex items-center gap-2">
@@ -380,7 +378,11 @@ function SettingsContent() {
               </li>
             </ul>
             <button
-              onClick={() => handlePayment('PREMIUM')}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handlePayment('PREMIUM')
+              }}
               disabled={processingPayment || (isPremium && isLicenseValid)}
               className="w-full bg-white text-primary-accent py-3 rounded-lg hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
             >
@@ -408,17 +410,3 @@ function SettingsContent() {
   )
 }
 
-export default function SettingsPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-primary-light">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-accent mx-auto mb-4"></div>
-          <div>Yükleniyor...</div>
-        </div>
-      </div>
-    }>
-      <SettingsContent />
-    </Suspense>
-  )
-}
