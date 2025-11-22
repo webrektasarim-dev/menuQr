@@ -36,8 +36,12 @@ export default function MenuPage() {
     }
 
     // Load QRCode component only on client side
-    import('qrcode.react').then((mod) => {
-      setQRCodeComponent(() => mod.default || mod)
+    import('qrcode.react').then((mod: any) => {
+      // qrcode.react exports QRCode as named export or default
+      const QRCode = mod.default || mod.QRCode || mod
+      setQRCodeComponent(() => QRCode)
+    }).catch((err) => {
+      console.error('Failed to load QRCode:', err)
     })
   }, [router])
 
