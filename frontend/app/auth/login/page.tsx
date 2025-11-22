@@ -21,7 +21,10 @@ export default function LoginPage() {
       localStorage.setItem('token', data.accessToken)
       localStorage.setItem('user', JSON.stringify(data.user))
       toast.success('Giriş başarılı!')
-      router.push('/admin/dashboard')
+      // Hard redirect to ensure token is saved before navigation
+      setTimeout(() => {
+        window.location.href = '/admin/dashboard'
+      }, 100)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Giriş başarısız!')

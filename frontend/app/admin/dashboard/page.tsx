@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
     
@@ -27,7 +30,12 @@ export default function DashboardPage() {
       return
     }
 
-    setUser(JSON.parse(userData))
+    try {
+      setUser(JSON.parse(userData))
+    } catch (error) {
+      console.error('Error parsing user data:', error)
+      router.push('/auth/login')
+    }
   }, [router])
 
   const { data: stats } = useQuery({

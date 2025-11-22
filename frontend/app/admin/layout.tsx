@@ -12,6 +12,9 @@ export default function AdminLayout({
   const pathname = usePathname()
 
   useEffect(() => {
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
     const token = localStorage.getItem('token')
     
     if (!token && pathname?.startsWith('/admin')) {
