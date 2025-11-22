@@ -5,10 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" prisma generate --schema=./prisma/schema.prisma && next build",
+    "prebuild": "node -e \"process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder'; require('child_process').execSync('npx prisma generate --schema=./prisma/schema.prisma', {stdio: 'inherit'})\"",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" prisma generate --schema=./prisma/schema.prisma",
+    "postinstall": "node -e \"process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder'; require('child_process').execSync('npx prisma generate --schema=./prisma/schema.prisma', {stdio: 'inherit'})\"",
     "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
     "prisma:migrate": "prisma migrate deploy"
   },
