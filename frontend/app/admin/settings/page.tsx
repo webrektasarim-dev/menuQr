@@ -36,15 +36,17 @@ function SettingsContent() {
     }
 
     // Payment callback kontrolü
-    const paymentStatus = searchParams.get('payment')
+    const paymentStatus = searchParams?.get('payment')
     if (paymentStatus === 'success') {
       toast.success('Ödeme başarılı! Lisansınız aktif edildi.')
       // Plan bilgilerini yenile
-      window.location.reload()
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     } else if (paymentStatus === 'failed') {
       toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
     }
-  }, [router, searchParams])
+  }, [router]) // searchParams dependency removed to prevent infinite loops
 
   // Prevent SSR rendering issues
   if (!isMounted) {

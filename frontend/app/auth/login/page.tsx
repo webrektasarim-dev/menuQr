@@ -71,6 +71,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-accent focus:border-transparent"
               placeholder="ornek@email.com"
             />
@@ -85,6 +86,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-accent focus:border-transparent"
               placeholder="••••••••"
             />

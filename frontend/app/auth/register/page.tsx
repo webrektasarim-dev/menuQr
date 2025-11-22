@@ -96,6 +96,7 @@ export default function RegisterPage() {
                 setFormData({ ...formData, email: e.target.value })
               }
               required
+              autoComplete="email"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-accent focus:border-transparent"
               placeholder="ornek@email.com"
             />
@@ -128,6 +129,7 @@ export default function RegisterPage() {
                 setFormData({ ...formData, password: e.target.value })
               }
               required
+              autoComplete="new-password"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-accent focus:border-transparent"
               placeholder="••••••••"
             />
@@ -147,6 +149,7 @@ export default function RegisterPage() {
                 setFormData({ ...formData, confirmPassword: e.target.value })
               }
               required
+              autoComplete="new-password"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-accent focus:border-transparent"
               placeholder="••••••••"
             />

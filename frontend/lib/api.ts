@@ -63,9 +63,13 @@ api.interceptors.response.use(
           isRedirecting = true
           localStorage.removeItem('token')
           localStorage.removeItem('user')
+          sessionStorage.removeItem('token')
+          sessionStorage.removeItem('user')
           // Use setTimeout to avoid redirect during render
           setTimeout(() => {
-            window.location.href = '/auth/login'
+            if (typeof window !== 'undefined') {
+              window.location.href = '/auth/login'
+            }
             // Reset flag after redirect
             setTimeout(() => {
               isRedirecting = false
