@@ -7,7 +7,6 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Edit, Trash2, Package, QrCode, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useEffect, useState } from 'react'
 
 export default function MenuPage() {
   const router = useRouter()
