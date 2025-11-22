@@ -16,9 +16,20 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
+    // Try localStorage first, then sessionStorage
+    let token = localStorage.getItem('token')
     if (!token) {
-      router.push('/auth/login')
+      token = sessionStorage.getItem('token')
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+    }
+    
+    if (!token) {
+      router.replace('/auth/login')
     }
   }, [router])
 
@@ -37,10 +48,17 @@ export default function OrdersPage() {
   const { data: orders, isLoading } = useQuery({
     queryKey: ['orders', selectedStatus],
     queryFn: async () => {
-      const params = selectedStatus ? `?status=${selectedStatus}` : ''
-      const { data } = await api.get(`/orders${params}`)
-      return data
+      try {
+        const params = selectedStatus ? `?status=${selectedStatus}` : ''
+        const { data } = await api.get(`/orders${params}`)
+        return data || []
+      } catch (error: any) {
+        // If error, return empty array
+        console.error('Error fetching orders:', error)
+        return []
+      }
     },
+    retry: false,
   })
 
   const getStatusColor = (status: OrderStatus) => {

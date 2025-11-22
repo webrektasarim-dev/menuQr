@@ -7,7 +7,6 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Edit, Trash2, QrCode, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { use } from 'react'
 
 export default function TablesPage() {
   const router = useRouter()
@@ -16,9 +15,20 @@ export default function TablesPage() {
   const [editingTable, setEditingTable] = useState<any>(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
+    // Try localStorage first, then sessionStorage
+    let token = localStorage.getItem('token')
     if (!token) {
-      router.push('/auth/login')
+      token = sessionStorage.getItem('token')
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+    }
+    
+    if (!token) {
+      router.replace('/auth/login')
     }
   }, [router])
 
@@ -33,9 +43,16 @@ export default function TablesPage() {
   const { data: tables, isLoading } = useQuery({
     queryKey: ['tables'],
     queryFn: async () => {
-      const { data } = await api.get('/tables')
-      return data
+      try {
+        const { data } = await api.get('/tables')
+        return data || []
+      } catch (error: any) {
+        // If error, return empty array
+        console.error('Error fetching tables:', error)
+        return []
+      }
     },
+    retry: false,
   })
 
   const { mutate: createTable } = useMutation({

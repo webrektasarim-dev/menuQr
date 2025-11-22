@@ -11,9 +11,20 @@ export default function SettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
+    // Try localStorage first, then sessionStorage
+    let token = localStorage.getItem('token')
     if (!token) {
-      router.push('/auth/login')
+      token = sessionStorage.getItem('token')
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+    }
+    
+    if (!token) {
+      router.replace('/auth/login')
     }
   }, [router])
 

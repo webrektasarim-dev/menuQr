@@ -18,9 +18,20 @@ export default function MenuPage() {
   const [editingCategory, setEditingCategory] = useState<any>(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    // Only check on client side
+    if (typeof window === 'undefined') return
+    
+    // Try localStorage first, then sessionStorage
+    let token = localStorage.getItem('token')
     if (!token) {
-      router.push('/auth/login')
+      token = sessionStorage.getItem('token')
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+    }
+    
+    if (!token) {
+      router.replace('/auth/login')
     }
   }, [router])
 
@@ -28,9 +39,18 @@ export default function MenuPage() {
   const { data: menu, isLoading } = useQuery({
     queryKey: ['menu'],
     queryFn: async () => {
-      const { data } = await api.get('/menus')
-      return data
+      try {
+        const { data } = await api.get('/menus')
+        return data
+      } catch (error: any) {
+        // If 404, menu doesn't exist yet (this is normal)
+        if (error.response?.status === 404 || error.response?.status === 400) {
+          return null
+        }
+        throw error
+      }
     },
+    retry: false,
   })
 
   // Create menu if doesn't exist
