@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { PLAN_NAMES, PLAN_PRICES } from '@/lib/plan'
+import { PLAN_NAMES, PLAN_PRICES } from '@/lib/plan-constants'
 
 export default function SettingsPage() {
   const router = useRouter()

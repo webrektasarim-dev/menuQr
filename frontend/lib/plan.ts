@@ -19,17 +19,8 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
   },
 }
 
-// Plan fiyatları (yıllık)
-export const PLAN_PRICES = {
-  BASIC: 399,
-  PREMIUM: 799,
-}
-
-// Plan isimleri
-export const PLAN_NAMES = {
-  BASIC: 'CafeQR Basic',
-  PREMIUM: 'CafeQR Premium',
-}
+// Re-export constants from plan-constants for backward compatibility
+export { PLAN_PRICES, PLAN_NAMES } from './plan-constants'
 
 export async function getPlanInfo(userId: string) {
   const user = await prisma.user.findUnique({

@@ -94,6 +94,11 @@ function getDatabaseUrl(): string {
 
 // Get database URL - always use environment variable at runtime
 function getDatabaseUrlForClient(): string {
+  // Only run on server-side (never in browser)
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma client cannot be used in client-side code. This is a server-only module.')
+  }
+  
   const url = process.env.DATABASE_URL
   
   // During build, DATABASE_URL might not be available - use placeholder
@@ -160,18 +165,26 @@ function getDatabaseUrlForClient(): string {
 }
 
 // Prisma client initialization with lazy URL resolution
-export const prisma = globalForPrisma.prisma ?? (() => {
-  // Get URL - will use placeholder during build if DATABASE_URL not available
-  const dbUrl = getDatabaseUrlForClient()
+// Only initialize on server-side
+export const prisma = (() => {
+  // Prevent client-side usage
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma client cannot be used in client-side code. This is a server-only module.')
+  }
   
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: dbUrl,
+  return globalForPrisma.prisma ?? (() => {
+    // Get URL - will use placeholder during build if DATABASE_URL not available
+    const dbUrl = getDatabaseUrlForClient()
+    
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: dbUrl,
+        },
       },
-    },
-  })
+    })
+  })()
 })()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
