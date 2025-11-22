@@ -16,7 +16,6 @@ export default function MenuPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [editingCategory, setEditingCategory] = useState<any>(null)
-  const [QRCodeComponent, setQRCodeComponent] = useState<any>(null)
 
   useEffect(() => {
     // Only check on client side
@@ -34,15 +33,6 @@ export default function MenuPage() {
     if (!token) {
       router.replace('/auth/login')
     }
-
-    // Load QRCode component only on client side
-    import('qrcode.react').then((mod: any) => {
-      // qrcode.react exports QRCode as named export or default
-      const QRCode = mod.default || mod.QRCode || mod
-      setQRCodeComponent(() => QRCode)
-    }).catch((err) => {
-      console.error('Failed to load QRCode:', err)
-    })
   }, [router])
 
   // Get menu with categories and products
