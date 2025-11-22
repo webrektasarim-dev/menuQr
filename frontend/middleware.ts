@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     '/api/v1/auth/register',
     '/api/v1/auth/login',
+    '/api/v1/auth/test-token', // Test endpoint for debugging
     '/api/v1/menus/public',
     '/api/v1/tables/public',
     '/api/v1/health',
