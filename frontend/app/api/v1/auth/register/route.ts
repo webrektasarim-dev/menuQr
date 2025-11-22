@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         businessName,
         slug,
-        plan: 'FREE',
+        plan: 'BASIC',
         role: 'ADMIN',
       },
     })
