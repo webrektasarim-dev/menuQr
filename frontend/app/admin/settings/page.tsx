@@ -8,6 +8,10 @@ import Link from 'next/link'
 import { ArrowLeft, Crown, Check, Calendar, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default function SettingsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
