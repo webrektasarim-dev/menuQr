@@ -41,52 +41,25 @@ export default function DashboardPage() {
     }
   }, [router])
 
+  const [shouldFetchStats, setShouldFetchStats] = useState(false)
+
+  // Delay API calls until page is fully loaded and user is set
+  useEffect(() => {
+    if (user) {
+      // Wait a bit to ensure token is properly set
+      const timer = setTimeout(() => {
+        setShouldFetchStats(true)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [user])
+
   const { data: stats, error: statsError } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      try {
-        const [menuRes, tablesRes, ordersRes] = await Promise.all([
-          api.get('/menus').catch((err) => {
-            // 404 is normal if menu doesn't exist yet
-            if (err.response?.status === 404) {
-              return { data: null }
-            }
-            throw err
-          }),
-          api.get('/tables').catch((err) => {
-            if (err.response?.status === 401) {
-              throw err // Re-throw 401 to trigger redirect
-            }
-            return { data: [] }
-          }),
-          api.get('/orders').catch((err) => {
-            if (err.response?.status === 401) {
-              throw err // Re-throw 401 to trigger redirect
-            }
-            return { data: [] }
-          }),
-        ])
-
-        const orders = ordersRes.data || []
-        const todayOrders = orders.filter((order: any) => {
-          const orderDate = new Date(order.createdAt)
-          const today = new Date()
-          return orderDate.toDateString() === today.toDateString()
-        })
-
-        return {
-          menu: menuRes.data ? 1 : 0,
-          tables: tablesRes.data?.length || 0,
-          orders: orders.length,
-          todayOrders: todayOrders.length,
-          totalRevenue: orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0),
-        }
-      } catch (error: any) {
-        // If 401, let the interceptor handle it
-        if (error.response?.status === 401) {
-          throw error
-        }
-        // For other errors, return default values
+      // Verify token exists before making API calls
+      const token = localStorage.getItem('token')
+      if (!token) {
         return {
           menu: 0,
           tables: 0,
@@ -95,9 +68,52 @@ export default function DashboardPage() {
           totalRevenue: 0,
         }
       }
+
+      // Make API calls with proper error handling
+      const [menuRes, tablesRes, ordersRes] = await Promise.all([
+        api.get('/menus').catch((err) => {
+          // 404 is normal if menu doesn't exist yet
+          if (err.response?.status === 404) {
+            return { data: null }
+          }
+          // For 401, return empty data
+          if (err.response?.status === 401) {
+            return { data: null }
+          }
+          return { data: null }
+        }),
+        api.get('/tables').catch((err) => {
+          if (err.response?.status === 401) {
+            return { data: [] }
+          }
+          return { data: [] }
+        }),
+        api.get('/orders').catch((err) => {
+          if (err.response?.status === 401) {
+            return { data: [] }
+          }
+          return { data: [] }
+        }),
+      ])
+
+      const orders = ordersRes.data || []
+      const todayOrders = orders.filter((order: any) => {
+        const orderDate = new Date(order.createdAt)
+        const today = new Date()
+        return orderDate.toDateString() === today.toDateString()
+      })
+
+      return {
+        menu: menuRes.data ? 1 : 0,
+        tables: tablesRes.data?.length || 0,
+        orders: orders.length,
+        todayOrders: todayOrders.length,
+        totalRevenue: orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0),
+      }
     },
-    enabled: !!user,
-    retry: false, // Don't retry on 401
+    enabled: !!user && shouldFetchStats,
+    retry: false,
+    refetchOnWindowFocus: false,
   })
 
   if (!user) {

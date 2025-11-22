@@ -20,6 +20,9 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Track if we're already redirecting to prevent loops
+let isRedirecting = false
+
 // Response interceptor - Handle errors
 api.interceptors.response.use(
   (response) => response,
@@ -27,13 +30,25 @@ api.interceptors.response.use(
     // Only redirect to login if we're not already on login/register page
     // and if it's a real 401 (not a handled error)
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !isRedirecting) {
         const currentPath = window.location.pathname
         // Don't redirect if already on auth pages
         if (!currentPath.startsWith('/auth/')) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          window.location.href = '/auth/login'
+          const token = localStorage.getItem('token')
+          if (token) {
+            // Token exists but is invalid, clear it and redirect
+            isRedirecting = true
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            // Use setTimeout to avoid redirect during render
+            setTimeout(() => {
+              window.location.href = '/auth/login'
+              // Reset flag after redirect
+              setTimeout(() => {
+                isRedirecting = false
+              }, 1000)
+            }, 100)
+          }
         }
       }
     }
