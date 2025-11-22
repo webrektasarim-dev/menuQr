@@ -29,20 +29,17 @@ api.interceptors.request.use((config) => {
       // Set Authorization header (case-sensitive)
       config.headers['Authorization'] = `Bearer ${token}`
       
-      // Debug logging (only in development)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔑 Token added to request:', {
-          url: config.url,
-          hasToken: !!token,
-          tokenLength: token.length,
-          tokenPrefix: token.substring(0, 20) + '...'
-        })
-      }
+      // Always log in production for debugging
+      console.log('🔑 [API] Token added to request:', {
+        url: config.url,
+        hasToken: !!token,
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...',
+        headerSet: !!config.headers['Authorization']
+      })
     } else {
-      // Debug logging when no token
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('⚠️ No token found for request:', config.url)
-      }
+      // Always log when no token
+      console.warn('⚠️ [API] No token found for request:', config.url)
     }
   }
   return config

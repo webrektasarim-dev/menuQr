@@ -28,9 +28,17 @@ export async function middleware(request: NextRequest) {
   // Check both 'authorization' and 'Authorization' headers (case-insensitive)
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization')
   
+  // Debug: Log all headers for troubleshooting
+  console.log('🔍 [Middleware] Request:', {
+    path: request.nextUrl.pathname,
+    hasAuthHeader: !!authHeader,
+    allHeaders: Object.fromEntries(request.headers.entries())
+  })
+  
   if (!authHeader) {
+    console.error('❌ [Middleware] No authorization header found')
     return NextResponse.json(
-      { message: 'Unauthorized: No authorization header' },
+      { message: 'Unauthorized: No authorization header', path: request.nextUrl.pathname },
       { status: 401 }
     )
   }
@@ -38,20 +46,32 @@ export async function middleware(request: NextRequest) {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim()
 
   if (!token) {
+    console.error('❌ [Middleware] No token in authorization header')
     return NextResponse.json(
-      { message: 'Unauthorized: No token provided' },
+      { message: 'Unauthorized: No token provided', authHeader: authHeader.substring(0, 20) },
       { status: 401 }
     )
   }
 
+  console.log('🔑 [Middleware] Token received:', {
+    tokenLength: token.length,
+    tokenPrefix: token.substring(0, 20) + '...'
+  })
+
   const payload = verifyToken(token)
 
   if (!payload) {
+    console.error('❌ [Middleware] Token verification failed')
     return NextResponse.json(
       { message: 'Unauthorized: Invalid or expired token' },
       { status: 401 }
     )
   }
+
+  console.log('✅ [Middleware] Token verified:', {
+    userId: payload.sub,
+    email: payload.email
+  })
 
   // Lisans kontrolü (sadece admin işlemleri için)
   // Not: BASIC plan için lisans kontrolü yapılmaz (her zaman geçerli)
