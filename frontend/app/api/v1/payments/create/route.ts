@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const amount = PLAN_PRICES[plan]
+    // Type assertion after validation
+    const planType = plan as 'BASIC' | 'PREMIUM'
+    const amount = PLAN_PRICES[planType]
     const orderId = `ORDER-${Date.now()}-${userId.substring(0, 8)}`
 
     // Payment kaydı oluştur
