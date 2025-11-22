@@ -5,10 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --schema=./prisma/schema.prisma && next build",
+    "build": "DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" prisma generate --schema=./prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate --schema=./prisma/schema.prisma",
+    "postinstall": "DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" prisma generate --schema=./prisma/schema.prisma",
     "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
     "prisma:migrate": "prisma migrate deploy"
   },
