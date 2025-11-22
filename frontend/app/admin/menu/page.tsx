@@ -84,18 +84,21 @@ export default function MenuPage() {
       return
     }
 
-    const canvas = document.getElementById('menu-qrcode') as HTMLCanvasElement
-    if (canvas) {
-      const pngUrl = canvas.toDataURL('image/png')
-      const downloadLink = document.createElement('a')
-      downloadLink.href = pngUrl
-      downloadLink.download = `menu-qr-${user?.slug || 'menu'}.png`
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      document.body.removeChild(downloadLink)
+    try {
+      // Use QR Server API for reliable QR code generation
+      const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`
+      
+      const link = document.createElement('a')
+      link.href = qrCodeImageUrl
+      link.download = `menu-qr-${user?.slug || 'menu'}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
       toast.success('Menü QR kodu indirildi!')
-    } else {
-      toast.error('QR kodu oluşturulamadı.')
+    } catch (error) {
+      // Fallback: copy URL to clipboard
+      navigator.clipboard.writeText(qrUrl)
+      toast.success('QR URL kopyalandı!')
     }
   }
 
@@ -297,17 +300,15 @@ export default function MenuPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 className="text-xl font-bold mb-4">Menü QR Kodu</h2>
             <div className="flex items-center gap-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                {QRCodeComponent ? (
-                  <QRCodeComponent
-                    id="menu-qrcode"
-                    value={generateMenuQRUrl()}
-                    size={128}
-                    level="H"
-                    includeMargin={false}
+              <div className="p-4 bg-gray-50 rounded-lg text-center">
+                {user?.slug && generateMenuQRUrl() ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generateMenuQRUrl())}`}
+                    alt="Menu QR Code"
+                    className="mx-auto mb-2"
                   />
                 ) : (
-                  <div className="w-32 h-32 bg-gray-200 animate-pulse rounded flex items-center justify-center">
+                  <div className="w-32 h-32 bg-gray-200 animate-pulse rounded flex items-center justify-center mx-auto">
                     <QrCode className="w-16 h-16 text-gray-400" />
                   </div>
                 )}

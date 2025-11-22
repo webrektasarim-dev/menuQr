@@ -34,19 +34,27 @@ function SettingsContent() {
       router.replace('/auth/login')
       return
     }
+  }, [router])
 
-    // Payment callback kontrolü
-    const paymentStatus = searchParams?.get('payment')
-    if (paymentStatus === 'success') {
-      toast.success('Ödeme başarılı! Lisansınız aktif edildi.')
-      // Plan bilgilerini yenile
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
-    } else if (paymentStatus === 'failed') {
-      toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
+  // Separate effect for payment callback to avoid dependency issues
+  useEffect(() => {
+    if (!isMounted || typeof window === 'undefined') return
+    
+    try {
+      const paymentStatus = searchParams?.get('payment')
+      if (paymentStatus === 'success') {
+        toast.success('Ödeme başarılı! Lisansınız aktif edildi.')
+        // Plan bilgilerini yenile
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      } else if (paymentStatus === 'failed') {
+        toast.error('Ödeme başarısız oldu. Lütfen tekrar deneyin.')
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error)
     }
-  }, [router]) // searchParams dependency removed to prevent infinite loops
+  }, [isMounted]) // Only depend on isMounted
 
   // Prevent SSR rendering issues
   if (!isMounted) {

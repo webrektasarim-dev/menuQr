@@ -55,7 +55,7 @@ export default function TablesPage() {
     retry: false,
   })
 
-  const { mutate: createTable } = useMutation({
+  const { mutate: createTable, isPending: isCreatingTable } = useMutation({
     mutationFn: async (tableData: any) => {
       const { data } = await api.post('/tables', tableData)
       return data
@@ -66,9 +66,12 @@ export default function TablesPage() {
       setShowModal(false)
       setEditingTable(null)
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Masa eklenirken hata oluştu')
+    },
   })
 
-  const { mutate: updateTable } = useMutation({
+  const { mutate: updateTable, isPending: isUpdatingTable } = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { data: response } = await api.patch(`/tables/${id}`, data)
       return response
@@ -79,15 +82,21 @@ export default function TablesPage() {
       setShowModal(false)
       setEditingTable(null)
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Masa güncellenirken hata oluştu')
+    },
   })
 
-  const { mutate: deleteTable } = useMutation({
+  const { mutate: deleteTable, isPending: isDeletingTable } = useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/tables/${id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tables'] })
       toast.success('Masa silindi!')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Masa silinirken hata oluştu')
     },
   })
 
@@ -195,10 +204,17 @@ export default function TablesPage() {
                 </div>
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg text-center">
+                {user?.slug && generateQRUrl(table) && (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(generateQRUrl(table))}`}
+                    alt={`QR Code for Table ${table.number}`}
+                    className="mx-auto mb-2"
+                  />
+                )}
                 <p className="text-xs text-gray-600 mb-1">QR URL:</p>
                 <p className="text-sm font-mono break-all">
-                  {generateQRUrl(table)}
+                  {generateQRUrl(table) || 'Yükleniyor...'}
                 </p>
               </div>
 
@@ -253,6 +269,7 @@ export default function TablesPage() {
       {showModal && (
         <TableModal
           table={editingTable}
+          isPending={isCreatingTable || isUpdatingTable}
           onClose={() => {
             setShowModal(false)
             setEditingTable(null)
@@ -273,10 +290,12 @@ export default function TablesPage() {
 // Table Modal Component
 function TableModal({
   table,
+  isPending,
   onClose,
   onSave,
 }: {
   table: any
+  isPending?: boolean
   onClose: () => void
   onSave: (data: any) => void
 }) {
@@ -338,15 +357,17 @@ function TableModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 border rounded-lg hover:bg-gray-50"
+              disabled={isPending}
+              className="flex-1 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               İptal
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90"
+              disabled={isPending}
+              className="flex-1 py-2 bg-primary-accent text-white rounded-lg hover:bg-primary-accent/90 disabled:opacity-50"
             >
-              Kaydet
+              {isPending ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>
