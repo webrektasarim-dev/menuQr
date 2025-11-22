@@ -32,11 +32,9 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Return null if menu doesn't exist (this is normal for new users)
     if (!menu) {
-      return NextResponse.json(
-        { message: 'Menu not found' },
-        { status: 404 }
-      )
+      return NextResponse.json(null)
     }
 
     return NextResponse.json(menu)

@@ -24,10 +24,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect to login if we're not already on login/register page
+    // and if it's a real 401 (not a handled error)
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-        window.location.href = '/auth/login'
+        const currentPath = window.location.pathname
+        // Don't redirect if already on auth pages
+        if (!currentPath.startsWith('/auth/')) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          window.location.href = '/auth/login'
+        }
       }
     }
     return Promise.reject(error)

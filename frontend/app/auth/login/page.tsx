@@ -18,13 +18,22 @@ export default function LoginPage() {
       return response
     },
     onSuccess: (data) => {
+      // Save token and user data
       localStorage.setItem('token', data.accessToken)
       localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Verify token is saved before redirect
+      const savedToken = localStorage.getItem('token')
+      if (!savedToken || savedToken !== data.accessToken) {
+        toast.error('Token kaydedilemedi, lütfen tekrar deneyin')
+        return
+      }
+      
       toast.success('Giriş başarılı!')
       // Hard redirect to ensure token is saved before navigation
       setTimeout(() => {
         window.location.href = '/admin/dashboard'
-      }, 100)
+      }, 200)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Giriş başarısız!')

@@ -15,10 +15,16 @@ export default function AdminLayout({
     // Only check on client side
     if (typeof window === 'undefined') return
     
+    // Don't redirect if already on login page
+    if (pathname?.startsWith('/auth/')) {
+      return
+    }
+    
     const token = localStorage.getItem('token')
     
     if (!token && pathname?.startsWith('/admin')) {
-      router.push('/auth/login')
+      // Use replace instead of push to avoid back button issues
+      router.replace('/auth/login')
     }
   }, [router, pathname])
 

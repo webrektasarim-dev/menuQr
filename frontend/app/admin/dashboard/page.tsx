@@ -26,43 +26,78 @@ export default function DashboardPage() {
     const userData = localStorage.getItem('user')
     
     if (!token || !userData) {
-      router.push('/auth/login')
+      router.replace('/auth/login')
       return
     }
 
     try {
-      setUser(JSON.parse(userData))
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
     } catch (error) {
       console.error('Error parsing user data:', error)
-      router.push('/auth/login')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.replace('/auth/login')
     }
   }, [router])
 
-  const { data: stats } = useQuery({
+  const { data: stats, error: statsError } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const [menuRes, tablesRes, ordersRes] = await Promise.all([
-        api.get('/menus').catch(() => ({ data: null })),
-        api.get('/tables').catch(() => ({ data: [] })),
-        api.get('/orders').catch(() => ({ data: [] })),
-      ])
+      try {
+        const [menuRes, tablesRes, ordersRes] = await Promise.all([
+          api.get('/menus').catch((err) => {
+            // 404 is normal if menu doesn't exist yet
+            if (err.response?.status === 404) {
+              return { data: null }
+            }
+            throw err
+          }),
+          api.get('/tables').catch((err) => {
+            if (err.response?.status === 401) {
+              throw err // Re-throw 401 to trigger redirect
+            }
+            return { data: [] }
+          }),
+          api.get('/orders').catch((err) => {
+            if (err.response?.status === 401) {
+              throw err // Re-throw 401 to trigger redirect
+            }
+            return { data: [] }
+          }),
+        ])
 
-      const orders = ordersRes.data || []
-      const todayOrders = orders.filter((order: any) => {
-        const orderDate = new Date(order.createdAt)
-        const today = new Date()
-        return orderDate.toDateString() === today.toDateString()
-      })
+        const orders = ordersRes.data || []
+        const todayOrders = orders.filter((order: any) => {
+          const orderDate = new Date(order.createdAt)
+          const today = new Date()
+          return orderDate.toDateString() === today.toDateString()
+        })
 
-      return {
-        menu: menuRes.data ? 1 : 0,
-        tables: tablesRes.data?.length || 0,
-        orders: orders.length,
-        todayOrders: todayOrders.length,
-        totalRevenue: orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0),
+        return {
+          menu: menuRes.data ? 1 : 0,
+          tables: tablesRes.data?.length || 0,
+          orders: orders.length,
+          todayOrders: todayOrders.length,
+          totalRevenue: orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0),
+        }
+      } catch (error: any) {
+        // If 401, let the interceptor handle it
+        if (error.response?.status === 401) {
+          throw error
+        }
+        // For other errors, return default values
+        return {
+          menu: 0,
+          tables: 0,
+          orders: 0,
+          todayOrders: 0,
+          totalRevenue: 0,
+        }
       }
     },
     enabled: !!user,
+    retry: false, // Don't retry on 401
   })
 
   if (!user) {
