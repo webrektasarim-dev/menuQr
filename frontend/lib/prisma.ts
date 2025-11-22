@@ -12,6 +12,11 @@ function getDatabaseUrl(): string {
     throw new Error('DATABASE_URL environment variable is not set. Please set it in Vercel environment variables.')
   }
 
+  // If using Neon, return as-is (Neon connection strings are already correct)
+  if (url.includes('neon.tech') || url.includes('neon.tech')) {
+    return url
+  }
+
   try {
     const urlObj = new URL(url)
     
