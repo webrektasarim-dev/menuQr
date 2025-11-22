@@ -114,7 +114,7 @@ export default function SettingsPage() {
   const licenseExpiresAt = userInfo?.licenseExpiresAt
     ? new Date(userInfo.licenseExpiresAt)
     : null
-  const isLicenseValid = licenseExpiresAt && licenseExpiresAt > new Date()
+  const isLicenseValid = licenseExpiresAt ? licenseExpiresAt > new Date() : false
 
   return (
     <div className="min-h-screen bg-primary-light">
