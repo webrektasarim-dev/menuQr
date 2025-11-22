@@ -169,22 +169,6 @@ export const prisma = (() => {
     throw new Error('Prisma client cannot be used in client-side code. This is a server-only module.')
   }
   
-  // During build (Prisma generate), we don't need to initialize the client
-  // Prisma generate only needs the schema file, not a real client instance
-  if (process.env.NEXT_PHASE === 'phase-production-build' || 
-      process.env.NEXT_PHASE === 'phase-development-build' ||
-      !process.env.DATABASE_URL) {
-    // Return a placeholder client that will be replaced at runtime
-    // This allows Prisma generate to work without DATABASE_URL
-    return new PrismaClient({
-      datasources: {
-        db: {
-          url: 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
-        },
-      },
-    })
-  }
-  
   return globalForPrisma.prisma ?? (() => {
     // Get URL - will use placeholder during build if DATABASE_URL not available
     const dbUrl = getDatabaseUrlForClient()
