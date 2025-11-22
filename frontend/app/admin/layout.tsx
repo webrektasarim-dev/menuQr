@@ -20,12 +20,29 @@ export default function AdminLayout({
       return
     }
     
-    const token = localStorage.getItem('token')
-    
-    if (!token && pathname?.startsWith('/admin')) {
-      // Use replace instead of push to avoid back button issues
-      router.replace('/auth/login')
+    // Wait a bit for token to be saved (especially after login)
+    const checkToken = () => {
+      const token = localStorage.getItem('token')
+      
+      if (!token && pathname?.startsWith('/admin')) {
+        // Only redirect if we're sure there's no token
+        // Give it a moment in case it's being saved
+        setTimeout(() => {
+          const tokenAgain = localStorage.getItem('token')
+          if (!tokenAgain) {
+            router.replace('/auth/login')
+          }
+        }, 500)
+      }
     }
+    
+    // Check immediately
+    checkToken()
+    
+    // Also check after a short delay (for cases where token is being saved)
+    const timer = setTimeout(checkToken, 200)
+    
+    return () => clearTimeout(timer)
   }, [router, pathname])
 
   return <>{children}</>

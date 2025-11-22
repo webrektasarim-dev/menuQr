@@ -26,9 +26,11 @@ export default function RegisterPage() {
       return response
     },
     onSuccess: (data) => {
-      // Save token and user data
+      // Save token and user data to both localStorage and sessionStorage
       localStorage.setItem('token', data.accessToken)
       localStorage.setItem('user', JSON.stringify(data.user))
+      sessionStorage.setItem('token', data.accessToken)
+      sessionStorage.setItem('user', JSON.stringify(data.user))
       
       // Verify token is saved before redirect
       const savedToken = localStorage.getItem('token')
@@ -39,9 +41,16 @@ export default function RegisterPage() {
       
       toast.success('Kayıt başarılı!')
       // Hard redirect to ensure token is saved before navigation
+      // Use longer timeout to ensure everything is saved
       setTimeout(() => {
-        window.location.href = '/admin/dashboard'
-      }, 200)
+        // Double check token before redirect
+        const finalCheck = localStorage.getItem('token')
+        if (finalCheck === data.accessToken) {
+          window.location.href = '/admin/dashboard'
+        } else {
+          toast.error('Token kaydedilemedi, lütfen tekrar deneyin')
+        }
+      }, 500)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Kayıt başarısız!')

@@ -22,23 +22,85 @@ export default function DashboardPage() {
     // Only check on client side
     if (typeof window === 'undefined') return
     
-    const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
-    
-    if (!token || !userData) {
-      router.replace('/auth/login')
-      return
-    }
+    // Wait a bit for token to be saved (especially after login)
+    const checkAuth = () => {
+      // Try localStorage first, then sessionStorage
+      let token = localStorage.getItem('token')
+      let userData = localStorage.getItem('user')
+      
+      if (!token) {
+        token = sessionStorage.getItem('token')
+        if (token) {
+          localStorage.setItem('token', token)
+        }
+      }
+      
+      if (!userData) {
+        userData = sessionStorage.getItem('user')
+        if (userData) {
+          localStorage.setItem('user', userData)
+        }
+      }
+      
+      if (!token || !userData) {
+        // Give it a moment in case it's being saved
+        setTimeout(() => {
+          let tokenAgain = localStorage.getItem('token')
+          let userDataAgain = localStorage.getItem('user')
+          
+          if (!tokenAgain) {
+            tokenAgain = sessionStorage.getItem('token')
+            if (tokenAgain) {
+              localStorage.setItem('token', tokenAgain)
+            }
+          }
+          
+          if (!userDataAgain) {
+            userDataAgain = sessionStorage.getItem('user')
+            if (userDataAgain) {
+              localStorage.setItem('user', userDataAgain)
+            }
+          }
+          
+          if (!tokenAgain || !userDataAgain) {
+            router.replace('/auth/login')
+          } else {
+            try {
+              const parsedUser = JSON.parse(userDataAgain)
+              setUser(parsedUser)
+            } catch (error) {
+              console.error('Error parsing user data:', error)
+              localStorage.removeItem('token')
+              localStorage.removeItem('user')
+              sessionStorage.removeItem('token')
+              sessionStorage.removeItem('user')
+              router.replace('/auth/login')
+            }
+          }
+        }, 500)
+        return
+      }
 
-    try {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-    } catch (error) {
-      console.error('Error parsing user data:', error)
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      router.replace('/auth/login')
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+      } catch (error) {
+        console.error('Error parsing user data:', error)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+        router.replace('/auth/login')
+      }
     }
+    
+    // Check immediately
+    checkAuth()
+    
+    // Also check after a short delay
+    const timer = setTimeout(checkAuth, 200)
+    
+    return () => clearTimeout(timer)
   }, [router])
 
   const [shouldFetchStats, setShouldFetchStats] = useState(false)
