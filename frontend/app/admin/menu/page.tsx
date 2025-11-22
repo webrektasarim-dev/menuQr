@@ -7,7 +7,26 @@ import { api } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Edit, Trash2, Package, QrCode, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
-import QRCode from 'qrcode.react'
+import dynamic from 'next/dynamic'
+
+// Dynamic import for QRCode to avoid SSR issues
+const QRCode = dynamic(
+  async () => {
+    const QRCodeModule = await import('qrcode.react')
+    // qrcode.react exports QRCode as default
+    return QRCodeModule.default ? { default: QRCodeModule.default } : QRCodeModule
+  },
+  {
+    ssr: false,
+    loading: () => <div className="w-32 h-32 bg-gray-200 animate-pulse rounded"></div>,
+  }
+) as React.ComponentType<{
+  id?: string
+  value: string
+  size?: number
+  level?: 'L' | 'M' | 'Q' | 'H'
+  includeMargin?: boolean
+}>
 
 export default function MenuPage() {
   const router = useRouter()
